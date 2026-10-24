@@ -283,7 +283,7 @@
       <div class="big">✓</div><h2>บันทึกเรียบร้อย</h2>
       <p style="color:var(--mut);margin:4px 0 0" id="okSub">รอหัวหน้าตรวจอนุมัติเพื่อคิดคะแนน</p>
       <div class="summ" id="okSumm"></div>
-      <button class="send" style="width:100%;padding:14px" id="againBtn">＋ รายงานสถานที่ถัดไป</button>
+      <button class="send" style="width:100%;padding:14px" id="againBtn">＋ บันทึกเพิ่ม (วันเดียวกัน)</button>
       <div class="todaybox" id="todayCount"></div>
       <button class="link" id="logoutBtn">ออกจากระบบ</button>
     </div>
@@ -985,7 +985,8 @@ function showOk(recs,h,all){
   const mine=all.filter(r=>(r.pin===currentTech.pin||r.tech===currentTech.name)&&r.dateKey===todayKey());
   $('#todayCount').textContent='วันนี้คุณรายงานแล้ว '+mine.length+' งาน';
 }
-$('#againBtn').onclick=()=>{$('#scrOk').classList.add('hidden');$('#scrApp').classList.remove('hidden');switchTab('report');resetForm();};
+$('#againBtn').onclick=()=>{const keep=reportDate;$('#scrOk').classList.add('hidden');$('#scrApp').classList.remove('hidden');switchTab('report');resetForm();
+  if(keep){reportDate=keep;$('#backdateDate').value=keep.key;$('#today').innerHTML=keep.th+' <span style="color:var(--amber);font-size:11px;font-weight:400">· ย้อนหลัง</span>';$('#backdatePanel').classList.remove('hidden');}};   // บันทึกเพิ่มได้เรื่อยๆ วันเดิมไม่หาย
 function goLogin(){currentTech=null;clearSession();$('#scrOk').classList.add('hidden');$('#scrApp').classList.add('hidden');$('#scrLogin').classList.remove('hidden');buildLogin();}
 $('#logoutBtn').onclick=goLogin;
 $('#backBtn').onclick=()=>{
