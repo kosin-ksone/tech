@@ -720,7 +720,7 @@ async function addPhotos(files,code){
         data=await withTimeout(resizeImageBlob(copyBlob,1280,0.68),9000);
       }catch(resizeErr){ data='data:'+mime+';base64,'+bufToBase64(buf); } // ย่อไม่ได้/ค้าง → ค่อยแปลงต้นฉบับตอนนี้เท่านั้น (กันกินแรมเกินจำเป็นตอนกรณีปกติที่ย่อสำเร็จ)
       const hash=simpleHash(data);const flags=[];
-      if(!exif.gps)flags.push('ไม่มีพิกัด');
+      // เลิกติดธง "ไม่มีพิกัด" แล้ว (พี่ฝนสั่ง 24 ต.ค. 69)
       if(exif.taken&&dayDiff(exif.taken,todayKey())>ALLOW_DAYS)flags.push('รูปเก่า');
       if(isDup(hash,code)){
         const a=await showModal({icon:'<i class="ti ti-photo-search"></i>',iconBg:'var(--amber-bg)',iconFg:'var(--amber)',title:'รูปนี้เคยส่งไปแล้วนะคะ 😊',
