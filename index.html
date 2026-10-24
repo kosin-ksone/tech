@@ -1085,7 +1085,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 function weekTableHtml(ws){
   const wm=weekOfMonth(ws);
   let h='<div class="pg"><div class="hd">รายงานการทำงานสัปดาห์ที่ <u>&nbsp;'+wm.n+'&nbsp;</u> เดือน <u>&nbsp;'+TH_MONTH[wm.month]+' '+(wm.year+543)+'&nbsp;</u> &nbsp; ชื่อผู้ปฏิบัติงาน <u>&nbsp;'+esc(currentTech.name)+'&nbsp;</u></div>'+
-    '<table><thead><tr><th style="width:11%">ประจำวัน</th><th style="width:14%">ทำที่ไหน</th><th style="width:17%">ทำอะไร</th><th style="width:20%">รายละเอียด</th><th style="width:15%">ปัญหาและแนวทางแก้ไข</th><th>ภาพประกอบ</th></tr></thead><tbody>';
+    '<table><thead><tr><th style="width:7%">ประจำวัน</th><th style="width:12%">ทำที่ไหน</th><th style="width:13%">ทำอะไร</th><th style="width:16%">รายละเอียด</th><th style="width:12%">ปัญหาและแนวทางแก้ไข</th><th>ภาพประกอบ</th></tr></thead><tbody>';
   weekDays(ws).forEach(d=>{
     const dn='วัน'+THAI_DOW[d.d.getDay()]+'ที่<br>'+todayStr(d.d);
     if(!d.items.length){h+='<tr><td>'+dn+'</td><td colspan="5" class="off">'+(d.off?'วันหยุด'+(d.offName?' · '+esc(d.offName):''):'-')+'</td></tr>';return;}
@@ -1107,7 +1107,7 @@ function printReport(kind,ws){
   const css='@page{size:A4 landscape;margin:12mm}body{font-family:"TH Sarabun New","Sarabun","Leelawadee UI",Tahoma,sans-serif;font-size:13px;color:#000;margin:0}'+
     '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}.hd{font-size:16px;font-weight:bold;margin:0 0 8px}'+
     'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #000;padding:5px;vertical-align:top;word-wrap:break-word}th{background:#eee}'+
-    'td.off{text-align:center;color:#555}.pics img{width:31%;margin:1%;border-radius:2px}tr{page-break-inside:avoid}';
+    'td.off{text-align:center;color:#555}.pics img{width:31.5%;margin:.9%;border-radius:2px}tr{page-break-inside:avoid}';
   const w=window.open('','_blank');
   if(!w){showModal({icon:'⚠️',title:'เปิดหน้าดาวน์โหลดไม่ได้',body:'อนุญาตป๊อปอัปให้แอปก่อน แล้วกดใหม่อีกครั้งนะคะ',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]});return;}
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>รายงานการทำงาน '+esc(currentTech.name)+'</title><style>'+css+'</style></head><body>'+weeks.map(weekTableHtml).join('')+'</body></html>');
