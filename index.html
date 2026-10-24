@@ -232,7 +232,7 @@
             <input type="date" id="backdateDate" class="field">
           </div>
           <div class="lbl" style="margin-top:10px">🏥 โรงพยาบาล / คลินิก / สถานที่</div>
-          <input class="field" id="hosInput" list="hosList" placeholder="เลือกจากรายการ หรือพิมพ์ชื่อเอง" autocomplete="off">
+          <input class="field" id="hosInput" list="hosList" placeholder="เลือก รพ. ในเขตของฉัน หรือพิมพ์เอง (เขตอื่น)" autocomplete="off">
           <datalist id="hosList"></datalist>
           <div class="hos-info hidden" id="hosInfo"><div class="chip" id="chipArea"></div><div class="chip trv" id="chipTrv" style="display:none"></div></div>
           <div class="hos-free hidden" id="hosFree">📝 สถานที่นอกรายการ — เลือกจังหวัดด้านล่าง</div>
@@ -287,6 +287,7 @@
 
 <script src="config.js"></script>
 <script src="data.js"></script>
+<script src="zone.js"></script>
 <script>
 /* ค่าเริ่มต้นนี้ใช้เฉพาะก่อนซิงค์จาก Sheet เท่านั้น (โหมดทดลอง/ออฟไลน์)
    แหล่งข้อมูลจริง = Google Sheet แท็บ "ค่าคะแนน" (refreshMaster() ดึงมาทับค่าเหล่านี้ทั้งหมดหลังเข้าแอปเสร็จ)
@@ -579,7 +580,10 @@ function enterApp(){
   $('#scrLogin').classList.add('hidden');$('#scrOk').classList.add('hidden');$('#scrApp').classList.remove('hidden');
   $('#who').innerHTML='<b>'+currentTech.name.split(' ')[0]+'</b><br>'+(isTcj()?'ต่างจังหวัด':(currentTech.vehicle||'กทม.'));
   const dl=$('#hosList');dl.innerHTML='';const seen={};
-  [].concat(window.HOSPITALS||[],window.TCJ_HOSPITALS||[]).forEach(h=>{if(!seen[h.name]){seen[h.name]=1;const o=document.createElement('option');o.value=h.name;dl.appendChild(o);}});
+  // ขึ้นเฉพาะ รพ. ในเขตตัวเอง (เขตการทำงาน rev122) · ไปเขตอื่นพิมพ์เอง
+  const myZone=(window.ZONE_TECH||{})[currentTech.name];
+  if(myZone&&myZone.length)myZone.forEach(n=>{if(!seen[n]){seen[n]=1;const o=document.createElement('option');o.value=n;dl.appendChild(o);}});
+  else [].concat(window.HOSPITALS||[],window.TCJ_HOSPITALS||[]).forEach(h=>{if(!seen[h.name]){seen[h.name]=1;const o=document.createElement('option');o.value=h.name;dl.appendChild(o);}});
   const pl=$('#provList');pl.innerHTML='';const ps={};(window.TCJ_HOSPITALS||[]).forEach(h=>{if(h.province!=='กทม')ps[h.province]=1;});['กทม','นนทบุรี','ปทุมธานี','สมุทรปราการ','สมุทรสาคร','นครปฐม'].forEach(p=>ps[p]=1);Object.keys(ps).sort().forEach(p=>{const o=document.createElement('option');o.value=p;pl.appendChild(o);});
   switchTab('report');resetForm();
 }
@@ -606,7 +610,7 @@ function resetForm(){
   $('#hosInput').value=getLastHos();$('#hosInfo').classList.add('hidden');$('#hosFree').classList.add('hidden');$('#typedProv').value='';$('#typedProvBox').classList.add('hidden');
   $('#trvLabel').textContent='ค่าเดินทาง';$('#trvVal').textContent='—';gps='';selected={};
   perDiemPeriod='ทั้งวัน';perDiemAmt=250;boothFull=true;$('#pdCard').classList.add('hidden');$('#boothCtrl').classList.add('hidden');
-  $('#hosInput').placeholder='เลือก/พิมพ์ชื่อ รพ. (ที่ไหนก็ได้ ข้ามเขตได้)';
+  $('#hosInput').placeholder='เลือก รพ. ในเขตของฉัน · เขตอื่นพิมพ์เอง';
   reportNote='';$('#reportNoteIn').value='';
   if($('#hosInput').value)applyHos();
   window.scrollTo(0,0);recalc();
@@ -805,6 +809,7 @@ function applyHos(){
     // นอกรายการ (พิมพ์เอง) → ให้เลือกจังหวัด แล้วคิดค่าตอบแทนตามจังหวัด
     $('#hosFree').classList.remove('hidden');$('#hosFree').textContent='📝 สถานที่นอกรายการ — เลือกจังหวัดด้านล่าง';
     $('#typedProvBox').classList.remove('hidden');
+    const zi=(window.ZONE_INFO||{})[v];if(zi&&zi.p&&!$('#typedProv').value.trim())$('#typedProv').value=zi.p;   // รพ. ในไฟล์เขต → ใส่จังหวัดให้อัตโนมัติ
     const prov=$('#typedProv').value.trim();const base=(window.TCJ_HOME||{})[currentTech.name]||[];const isBkkTech=techRegion(currentTech)==='กทม./ปริมณฑล';
     if(!prov){$('#trvLabel').textContent='ค่าตอบแทน';$('#trvVal').textContent='—';}
     else if(base.indexOf(prov)>=0){$('#trvLabel').textContent='ค่าตอบแทน';$('#trvVal').textContent='0.-';$('#hosFree').textContent='📍 '+prov+' — จังหวัดฐาน (ในเขตทำงาน)';}
