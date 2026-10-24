@@ -1055,13 +1055,19 @@ function renderMine(){
     if(!d.items.length){h+='<div class="day off"><div class="dh" style="color:var(--mut2)">'+dname+'<span>'+(d.off?('หยุด'+(d.offName?' · '+d.offName:'')):'ไม่มีรายงาน')+'</span></div></div>';return;}
     const nPh=d.items.reduce((a,r)=>a+(r.photoCount||0),0);
     h+='<div class="day"><div class="dh">'+dname+'<span>📷 '+nPh+' รูป</span></div>';
-    d.items.forEach(r=>{
-      const th=r.thumbs||[];const show=th.slice(0,4);
-      h+='<div class="it"><span class="wh">'+esc(r.hospital)+'</span> · '+r.code+' '+esc(cleanLabel(r))+' '+statusBadge(r.status)+
-        (r.desc?'<div style="color:var(--mut);font-size:11.5px">'+esc(r.desc)+'</div>':'')+
-        (r.note?'<div class="pr">⚠ '+esc(r.note)+'</div>':'')+
-        (show.length?'<div class="photos">'+show.map((t,k)=>'<div class="ph-wrap"><img class="ph" src="'+t+'" data-rid="'+r.id+'" data-k="'+k+'">'+(k===3&&th.length>4?'<div class="more">+'+(th.length-4)+'</div>':'')+'</div>').join('')+'</div>':
-          (r.photoCount?'<div style="font-size:11px;color:var(--mut2)">📷 '+r.photoCount+' รูป</div>':''))+'</div>';
+    // แยกกล่องย่อยต่อ รพ. — ใต้ รพ. เป็นงานแต่ละงาน พร้อมรูปของงานนั้น
+    const g={},order=[];d.items.forEach(r=>{const k=(r.hospital||'-').trim();if(!g[k]){g[k]=[];order.push(k);}g[k].push(r);});
+    order.forEach(hn=>{
+      h+='<div class="it"><div class="wh" style="font-weight:700">📍 '+esc(hn)+'</div>';
+      g[hn].forEach(r=>{
+        const th=r.thumbs||[];const show=th.slice(0,4);
+        h+='<div style="margin:5px 0 0 6px">• '+r.code+' '+esc(cleanLabel(r))+
+          (r.desc?'<div style="color:var(--mut);font-size:11.5px">'+esc(r.desc)+'</div>':'')+
+          (r.note?'<div class="pr">⚠ '+esc(r.note)+'</div>':'')+
+          (show.length?'<div class="photos">'+show.map((t,k)=>'<div class="ph-wrap"><img class="ph" src="'+t+'" data-rid="'+r.id+'" data-k="'+k+'">'+(k===3&&th.length>4?'<div class="more">+'+(th.length-4)+'</div>':'')+'</div>').join('')+'</div>':
+            (r.photoCount?'<div style="font-size:11px;color:var(--mut2)">📷 '+r.photoCount+' รูป</div>':''))+'</div>';
+      });
+      h+='</div>';
     });
     h+='</div>';
   });
@@ -1083,12 +1089,15 @@ function weekTableHtml(ws){
   weekDays(ws).forEach(d=>{
     const dn='วัน'+THAI_DOW[d.d.getDay()]+'ที่<br>'+todayStr(d.d);
     if(!d.items.length){h+='<tr><td>'+dn+'</td><td colspan="5" class="off">'+(d.off?'วันหยุด'+(d.offName?' · '+esc(d.offName):''):'-')+'</td></tr>';return;}
-    const where=[...new Set(d.items.map(r=>r.hospital))].map(esc).join('<br>');
-    const what=d.items.map(r=>esc(cleanLabel(r))).join('<br>');
-    const det=d.items.map(r=>r.desc?'- '+esc(r.desc):'').filter(Boolean).join('<br>')||'-';
-    const prob=d.items.map(r=>r.note?'- '+esc(r.note):'').filter(Boolean).join('<br>')||'-';
-    const ph=d.items.reduce((a,r)=>a.concat(r.thumbs||[]),[]);
-    h+='<tr><td>'+dn+'</td><td>'+where+'</td><td>'+what+'</td><td>'+det+'</td><td>'+prob+'</td><td class="pics">'+(ph.length?ph.map(t=>'<img src="'+t+'">').join(''):'-')+'</td></tr>';
+    // แยก 1 แถวต่อ รพ. (งาน/รายละเอียด/ปัญหา/รูป ของ รพ. นั้น) · ช่องวันที่รวมแถว
+    const g={},order=[];d.items.forEach(r=>{const k=(r.hospital||'-').trim();if(!g[k]){g[k]=[];order.push(k);}g[k].push(r);});
+    order.forEach((hn,gi)=>{const it=g[hn];
+      const what=it.map(r=>esc(cleanLabel(r))).join('<br>');
+      const det=it.map(r=>r.desc?'- '+esc(r.desc):'').filter(Boolean).join('<br>')||'-';
+      const prob=it.map(r=>r.note?'- '+esc(r.note):'').filter(Boolean).join('<br>')||'-';
+      const ph=it.reduce((a,r)=>a.concat(r.thumbs||[]),[]);
+      h+='<tr>'+(gi?'':'<td rowspan="'+order.length+'">'+dn+'</td>')+'<td><b>'+esc(hn)+'</b></td><td>'+what+'</td><td>'+det+'</td><td>'+prob+'</td><td class="pics">'+(ph.length?ph.map(t=>'<img src="'+t+'">').join(''):'-')+'</td></tr>';
+    });
   });
   return h+'</tbody></table></div>';
 }
