@@ -155,6 +155,9 @@
   .send{background:linear-gradient(135deg,var(--green),var(--green-lt,var(--green)));color:var(--green-dk);border:none;font-weight:700;font-size:15px;padding:13px 20px;border-radius:14px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.18)}
   .bar .hint{background:rgba(255,252,247,.92);border-radius:8px}
   .send:disabled{background:var(--line2);color:#fff;box-shadow:none}
+  .send.need{background:#fff;color:var(--danger);border:2px dashed var(--danger);box-shadow:none;font-size:14px}
+  .flash{animation:flash 1.6s}
+  @keyframes flash{0%,60%{box-shadow:0 0 0 4px rgba(217,65,47,.45)}100%{box-shadow:none}}
   .bighead{background:var(--brand-tint);border-radius:14px;padding:16px;margin-bottom:12px}
   .bighead .t{font-size:11px;color:var(--brand-dark)}
   .bighead .n{font-size:32px;font-weight:500;color:var(--green);line-height:1.2}
@@ -772,8 +775,9 @@ function recalc(){
   if(!hname){ok=false;hint='• กรอกชื่อสถานที่';}else if(sel.length===0){ok=false;hint='• เลือกงานอย่างน้อย 1 งาน';}else if(missing.length){ok=false;hint='• ยังขาดรูปแนบ '+missing.length+' งาน';}else if(kMiss){ok=false;hint='• ระบุรายละเอียด "งานอื่นๆ" ก่อนส่ง';}
   curPlaceOk=ok;const nDay=(typeof dayPlaces!=='undefined')?dayPlaces.length:0;const curEmpty=!hname&&sel.length===0;
   const btnOk=ok||(nDay>0&&curEmpty);
-  $('#sendBtn').disabled=!btnOk;$('#hint').textContent=btnOk?'':hint;
-  $('#sendBtn').textContent=nDay?('บันทึกงานวันนี้ ('+(nDay+(ok?1:0))+' สถานที่)'):'บันทึกงาน';
+  // ปุ่มกดได้เสมอ — ถ้ายังไม่ครบ บอกบนปุ่มเลยว่าขาดอะไร กดแล้วพาไปช่องนั้น
+  $('#sendBtn').disabled=false;$('#sendBtn').classList.toggle('need',!btnOk);$('#sendBtn').dataset.ok=btnOk?'1':'';$('#hint').textContent='';
+  $('#sendBtn').textContent=!btnOk?('👉 '+hint.replace('• ','')+' ก่อนบันทึก'):(nDay?('✓ บันทึกงานวันนี้ ('+(nDay+(ok?1:0))+' สถานที่)'):'✓ บันทึกงาน');
   saveSession();
 }
 /* ค่าตอบแทนอิงสถานที่ (ไขว้เขตได้): กทม./ปริมณฑล=ค่าจุด · ตจว.=เบี้ยเลี้ยง(นอกฐาน) */
@@ -955,7 +959,15 @@ async function submitDay(){
   dayPlaces=[];$('#dayPlaces').innerHTML='';clearSession();
   if(all.length)showOk(all,null,getReports());
 }
-$('#sendBtn').onclick=()=>{submitDay();};
+$('#sendBtn').onclick=()=>{
+  if($('#sendBtn').dataset.ok){submitDay();return;}
+  // ยังไม่ครบ → พาไปช่องที่ขาด
+  const sel=Object.values(selected);let el=null;
+  if(!$('#hosInput').value.trim())el=$('#hosInput');
+  else if(!sel.length){el=$('#tasks');}
+  else{const m=sel.find(s=>s.photos.length===0)||sel.find(s=>s.code==='K1'&&!(s.desc&&s.desc.trim()));if(m){el=document.querySelector('.task[data-code="'+m.code+'"]');const g=el&&el.closest('.grp');if(g)g.classList.add('open');}}
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});if(el.focus&&el.tagName==='INPUT')setTimeout(()=>el.focus(),300);el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600);}
+};
 /* งานที่ยังไม่มีในรายการ/ยังไม่มีคะแนน → ใช้ K1 "งานอื่นๆ" (คะแนน 0 ผู้ตรวจพิจารณา) */
 $('#freeJobBtn').onclick=()=>{
   const el=document.querySelector('.task[data-code="K1"]');if(!el)return;
