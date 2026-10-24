@@ -136,6 +136,7 @@
   .day .photos{margin:6px 0 0}
   .more{position:absolute;inset:0;border-radius:10px;background:rgba(60,40,28,.7);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;pointer-events:none}
   .dlrow{display:flex;gap:8px;margin:12px 0}
+  .dbtn{border:1px solid var(--gold);background:var(--gold-bg);color:var(--brand-dark);border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer;margin-left:6px}
   .dlrow .btn{font-size:13px}
   .goldcard{background:linear-gradient(135deg,#FFF6E0,var(--gold-bg));border:2px solid var(--gold);border-radius:18px;padding:16px;text-align:center;margin-bottom:12px}
   .goldcard .n{font-size:44px;font-weight:900;color:var(--brand-dark);line-height:1.1}
@@ -1055,7 +1056,7 @@ function renderMine(){
     const dname=TH_DOW_S[d.d.getDay()]+' '+todayStr(d.d).replace(/ \d+$/,'');
     if(!d.items.length){h+='<div class="day off"><div class="dh" style="color:var(--mut2)">'+dname+'<span>'+(d.off?('หยุด'+(d.offName?' · '+d.offName:'')):'ไม่มีรายงาน')+'</span></div></div>';return;}
     const nPh=d.items.reduce((a,r)=>a+(r.photoCount||0),0);
-    h+='<div class="day"><div class="dh">'+dname+'<span>📷 '+nPh+' รูป</span></div>';
+    h+='<div class="day"><div class="dh">'+dname+'<span>📷 '+nPh+' รูป <button class="dbtn" data-day="'+d.dk+'">⬇ โหลดวันนี้</button></span></div>';
     // แยกกล่องย่อยต่อ รพ. — ใต้ รพ. เป็นงานแต่ละงาน พร้อมรูปของงานนั้น
     const g={},order=[];d.items.forEach(r=>{const k=(r.hospital||'-').trim();if(!g[k]){g[k]=[];order.push(k);}g[k].push(r);});
     order.forEach(hn=>{
@@ -1079,15 +1080,18 @@ function renderMine(){
   $$('#mineBody [data-wk]').forEach(b=>b.onclick=()=>{if(b.disabled)return;mineWeek=addDays(mineWeek,7*+b.dataset.wk);renderMine();});
   $$('#mineBody img[data-rid]').forEach(im=>im.onclick=()=>{const r=myRecs().find(x=>x.id===im.dataset.rid);if(r)openViewer(r.thumbs,+im.dataset.k,r.dateTh+' · '+esc(r.hospital)+' · '+r.code+' '+esc(cleanLabel(r)));});
   $$('#mineBody [data-dl]').forEach(b=>b.onclick=()=>printReport(b.dataset.dl,ws));
+  $$('#mineBody [data-day]').forEach(b=>b.onclick=()=>printReport('day',ws,b.dataset.day));
 }
 
 /* ===== ดาวน์โหลด = หน้าพิมพ์แบบฟอร์มเดิม (แนวนอน) → บันทึกเป็น PDF ===== */
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function weekTableHtml(ws){
+function weekTableHtml(ws,only){   // only = เฉพาะวันนั้น (โหลดรายวัน)
   const wm=weekOfMonth(ws);
-  let h='<div class="pg"><div class="hd">รายงานการทำงานสัปดาห์ที่ <u>&nbsp;'+wm.n+'&nbsp;</u> เดือน <u>&nbsp;'+TH_MONTH[wm.month]+' '+(wm.year+543)+'&nbsp;</u> &nbsp; ชื่อผู้ปฏิบัติงาน <u>&nbsp;'+esc(currentTech.name)+'&nbsp;</u></div>'+
+  let h='<div class="pg"><div class="hd">'+(only?('รายงานการทำงานประจำวัน <u>&nbsp;วัน'+THAI_DOW[kd(only).getDay()]+'ที่ '+todayStr(kd(only))+'&nbsp;</u>'):('รายงานการทำงานสัปดาห์ที่ <u>&nbsp;'+wm.n+'&nbsp;</u>'))+' เดือน <u>&nbsp;'+TH_MONTH[wm.month]+' '+(wm.year+543)+'&nbsp;</u> &nbsp; ชื่อผู้ปฏิบัติงาน <u>&nbsp;'+esc(currentTech.name)+'&nbsp;</u></div>'+
     '<table><thead><tr><th style="width:7%">ประจำวัน</th><th style="width:12%">ทำที่ไหน</th><th style="width:13%">ทำอะไร</th><th style="width:16%">รายละเอียด</th><th style="width:12%">ปัญหาและแนวทางแก้ไข</th><th>ภาพประกอบ</th></tr></thead><tbody>';
+  if(only)h=h.replace(/ เดือน <u>.*?<\/u>/,'');
   weekDays(ws).forEach(d=>{
+    if(only&&d.dk!==only)return;
     const dn='วัน'+THAI_DOW[d.d.getDay()]+'ที่<br>'+todayStr(d.d);
     if(!d.items.length){h+='<tr><td>'+dn+'</td><td colspan="5" class="off">'+(d.off?'วันหยุด'+(d.offName?' · '+esc(d.offName):''):'-')+'</td></tr>';return;}
     // แยก 1 แถวต่อ รพ. (งาน/รายละเอียด/ปัญหา/รูป ของ รพ. นั้น) · ช่องวันที่รวมแถว
@@ -1102,7 +1106,7 @@ function weekTableHtml(ws){
   });
   return h+'</tbody></table></div>';
 }
-function printReport(kind,ws){
+function printReport(kind,ws,day){
   let weeks=[ws];
   if(kind==='month'){const wm=weekOfMonth(ws);weeks=[];let w=wkStart(dkey(new Date(wm.year,wm.month,1)));for(let i=0;i<6;i++){const x=weekOfMonth(w);if(x.month===wm.month&&x.year===wm.year)weeks.push(w);w=addDays(w,7);}}
   const css='@page{size:A4 landscape;margin:12mm}body{font-family:"TH Sarabun New","Sarabun","Leelawadee UI",Tahoma,sans-serif;font-size:13px;color:#000;margin:0}'+
@@ -1111,7 +1115,7 @@ function printReport(kind,ws){
     'td.off{text-align:center;color:#555}.pics img{width:31.5%;margin:.9%;border-radius:2px}tr{page-break-inside:avoid}';
   const w=window.open('','_blank');
   if(!w){showModal({icon:'⚠️',title:'เปิดหน้าดาวน์โหลดไม่ได้',body:'อนุญาตป๊อปอัปให้แอปก่อน แล้วกดใหม่อีกครั้งนะคะ',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]});return;}
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>รายงานการทำงาน '+esc(currentTech.name)+'</title><style>'+css+'</style></head><body>'+weeks.map(weekTableHtml).join('')+'</body></html>');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>รายงานการทำงาน '+esc(currentTech.name)+'</title><style>'+css+'</style></head><body>'+weeks.map(w=>weekTableHtml(w,kind==='day'?day:null)).join('')+'</body></html>');
   w.document.close();setTimeout(()=>{try{w.focus();w.print();}catch(e){}},600);
 }
 
