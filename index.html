@@ -586,7 +586,7 @@ function enterApp(){
   const dl=$('#hosList');dl.innerHTML='';const seen={};
   // ขึ้นเฉพาะ รพ. ในเขตตัวเอง (เขตการทำงาน rev122) · ไปเขตอื่นพิมพ์เอง
   const myZone=(window.ZONE_TECH||{})[currentTech.name];
-  if(myZone&&myZone.length)myZone.forEach(n=>{if(!seen[n]){seen[n]=1;const o=document.createElement('option');o.value=n;dl.appendChild(o);}});
+  if(myZone&&myZone.length)myZone.slice().sort(new Intl.Collator('th').compare).forEach(n=>{if(!seen[n]){seen[n]=1;const o=document.createElement('option');o.value=n;dl.appendChild(o);}});
   else [].concat(window.HOSPITALS||[],window.TCJ_HOSPITALS||[]).forEach(h=>{if(!seen[h.name]){seen[h.name]=1;const o=document.createElement('option');o.value=h.name;dl.appendChild(o);}});
   const pl=$('#provList');pl.innerHTML='';const ps={};(window.TCJ_HOSPITALS||[]).forEach(h=>{if(h.province!=='กทม')ps[h.province]=1;});['กทม','นนทบุรี','ปทุมธานี','สมุทรปราการ','สมุทรสาคร','นครปฐม'].forEach(p=>ps[p]=1);Object.keys(ps).sort().forEach(p=>{const o=document.createElement('option');o.value=p;pl.appendChild(o);});
   switchTab('report');resetForm();
