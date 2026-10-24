@@ -1212,24 +1212,22 @@ function viewToggleHtml(active){return '<div style="display:flex;gap:6px;margin-
 function bindViewToggle(){$$('#planBody [data-view]').forEach(b=>b.onclick=()=>{planView=b.dataset.view;renderPlan();});}
 /* ===== โหลดแพลน (จ–อา) — ช่างกดเองแล้วส่งเมลปลายทางเอง ===== */
 function planOfDay(dk){const a=(loadPlans()[currentTech.name])||{};return (a[sundayStart(dk)]||{})[dk]||{};}
-function printPlan(mon){
-  const wm=weekOfMonth(mon),sun=addDays(mon,6);
-  let rows='';
-  for(let i=0;i<7;i++){const dk=addDays(mon,i),d=kd(dk),p=planOfDay(dk),di=dayInfo(dk);
-    const cell=s=>{const e=p[s];return e&&e.hospital?('<b>'+esc(e.hospital)+'</b>'+(e.detail?'<br>'+esc(e.detail):'')):(di.off?'<span style="color:#888">หยุด</span>':'-');};
-    rows+='<tr><td>วัน'+THAI_DOW[d.getDay()]+'ที่<br>'+todayStr(d)+'</td><td>'+cell('เช้า')+'</td><td>'+cell('บ่าย')+'</td></tr>';}
-  const css='@page{size:A4 landscape;margin:12mm}body{font-family:"TH Sarabun New","Sarabun","Leelawadee UI",Tahoma,sans-serif;font-size:14px;color:#000;margin:0}'+
-    '.hd{font-size:17px;font-weight:bold;margin:0 0 8px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #000;padding:7px;vertical-align:top;word-wrap:break-word}th{background:#eee}'+
-    '.bar{position:sticky;top:0;background:#5E3D29;padding:8px;display:flex;gap:8px}.bar button{flex:1;padding:10px;border:1px solid #E0B44C;border-radius:8px;font-weight:700;font-size:14px}@media print{.bar{display:none}}';
-  const w=window.open('','_blank');
+function printPlan(sun){   // ฟอร์มแพลนเดิม (xlsx): อาทิตย์–เสาร์ แนวนอน · เช้า/บ่าย · วันหยุดเหลือง
+  var cellsOf=function(k){var p=planOfDay(k);return ['เช้า','บ่าย'].map(function(s){var e=p[s];return e&&e.hospital?esc(e.hospital)+(e.detail?'<br>'+esc(e.detail):''):'';});};
+  var dows=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'],mm=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var r1='<tr><th></th>',r2='<tr><th></th>',r3='<tr><td class="nm">'+esc(currentTech.name)+'</td>',rm='<tr class="sl"><td>เช้า</td>',ra='<tr class="sl"><td>บ่าย</td>';
+  for(var i=0;i<7;i++){var k=addDays(sun,i),dd=new Date(k+'T00:00:00'),c=cellsOf(k),off=function(k){return dayInfo(k).off;}(k);
+    r1+='<th>'+dows[i]+'</th>';r2+='<th>'+dd.getDate()+'-'+mm[dd.getMonth()]+'-'+String(dd.getFullYear()%100).padStart(2,'0')+'</th>';r3+='<td></td>';
+    rm+=c[0]?'<td>'+c[0]+'</td>':(off?'<td class="off">หยุด</td>':'<td></td>');
+    ra+=c[1]?'<td>'+c[1]+'</td>':(off?'<td class="off">หยุด</td>':'<td></td>');}
+  var w=window.open('','_blank');
   if(!w){showModal({icon:'⚠️',title:'เปิดหน้าดาวน์โหลดไม่ได้',body:'อนุญาตป๊อปอัปให้แอปก่อน แล้วกดใหม่อีกครั้งนะคะ',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]});return;}
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>แพลนงาน '+esc(currentTech.name)+'</title><style>'+css+'</style></head><body>'+
-    '<div class="bar"><button onclick="window.print()" style="background:#8A5A3C;color:#fff">⬇ บันทึกเป็น PDF / พิมพ์</button><button onclick="window.close()">ปิด</button></div>'+
-    '<div style="padding:8px"><div class="hd">แพลนการทำงานสัปดาห์ที่ <u>&nbsp;'+wm.n+'&nbsp;</u> เดือน <u>&nbsp;'+TH_MONTH[wm.month]+' '+(wm.year+543)+'&nbsp;</u> ('+todayStr(kd(mon))+' – '+todayStr(kd(sun))+') &nbsp; ชื่อผู้ปฏิบัติงาน <u>&nbsp;'+esc(currentTech.name)+'&nbsp;</u></div>'+
-    '<table><thead><tr><th style="width:14%">วัน</th><th>เช้า</th><th>บ่าย</th></tr></thead><tbody>'+rows+'</tbody></table></div></body></html>');
-  w.document.close();setTimeout(()=>{try{w.focus();w.print();}catch(e){}},600);
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>แพลนงาน '+esc(currentTech.name)+'</title><style>@page{size:A4 landscape;margin:12mm}body{font-family:Tahoma,"Leelawadee UI",Sarabun,sans-serif;font-size:13px;color:#000;margin:0}table.pl{border-collapse:collapse;width:100%;table-layout:fixed}.pl th,.pl td{border:1px solid #000;padding:6px 4px;text-align:center;vertical-align:middle;word-wrap:break-word;font-weight:400}.pl thead th{border-color:#bbb}.pl td.nm{background:#E7E6E6;text-align:left;padding-left:8px}.pl tr.sl td{height:110px}.pl td.off{background:#FFFF00}.bar{position:sticky;top:0;padding:8px;display:flex;gap:8px}.bar button{flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:14px}@media print{.bar{display:none}}</style></head><body>'
+    +'<div class="bar" style="background:#5E3D29"><button onclick="window.print()" style="background:#8A5A3C;color:#fff;border:1px solid #E0B44C">⬇ บันทึกเป็น PDF / พิมพ์</button><button onclick="window.close()">ปิด</button></div>'
+    +'<div style="padding:10px"><table class="pl"><thead>'+r1+'</tr>'+r2+'</tr></thead><tbody>'+r3+'</tr>'+rm+'</tr>'+ra+'</tr></tbody></table></div></body></html>');
+  w.document.close();setTimeout(function(){try{w.focus();w.print();}catch(e){}},600);
 }
-function planDlButtons(){const tw=wkStart(todayKey());return '<div class="dlrow"><button class="btn" data-pdl="'+tw+'">⬇ โหลดแพลนสัปดาห์นี้</button><button class="btn" data-pdl="'+addDays(tw,7)+'">⬇ โหลดแพลนสัปดาห์หน้า</button></div>';}
+function planDlButtons(){const tw=sundayStart();return '<div class="dlrow"><button class="btn" data-pdl="'+tw+'">⬇ โหลดแพลนสัปดาห์นี้</button><button class="btn" data-pdl="'+addDays(tw,7)+'">⬇ โหลดแพลนสัปดาห์หน้า</button></div>';}
 function bindPlanDl(){$$('#planBody [data-pdl]').forEach(b=>b.onclick=()=>printPlan(b.dataset.pdl));}
 function renderPlanMonth(){
   if(!planMonth){const d=new Date();planMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';}
@@ -1292,7 +1290,7 @@ function renderPlan(){
     });
     h+='</div>';
   }
-  h+=planSummaryHtml(ws)+'<div class="dlrow"><button class="btn" data-pdl="'+wkStart(addDays(ws,1))+'">⬇ โหลดแพลน (จ '+fmtD(kd(addDays(ws,1)))+' – อา '+fmtD(kd(addDays(ws,7)))+')</button></div>';
+  h+=planSummaryHtml(ws)+'<div class="dlrow"><button class="btn" data-pdl="'+ws+'">⬇ โหลดแพลนสัปดาห์นี้ (อา '+fmtD(kd(ws))+' – ส '+fmtD(kd(addDays(ws,6)))+')</button></div>';
   $('#planBody').innerHTML=h;bindPlanDl();
   $$('#planBody [data-nav]').forEach(b=>b.onclick=()=>{const dd=new Date(ws+'T00:00:00');dd.setDate(dd.getDate()+7*parseInt(b.dataset.nav));planWeek=dkey(dd);renderPlan();});
   $$('#planBody .planslot').forEach(el=>el.onclick=()=>editPlanSlot(ws,el.dataset.dk,el.dataset.slot));
