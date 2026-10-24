@@ -591,7 +591,7 @@ function enterApp(){
   // ขึ้นเฉพาะ รพ. ในเขตตัวเอง (เขตการทำงาน rev122) · ไปเขตอื่นพิมพ์เอง
   const myZone=(window.ZONE_TECH||{})[currentTech.name];
   if(myZone&&myZone.length)myZone.slice().sort(new Intl.Collator('th').compare).forEach(n=>{if(!seen[n]){seen[n]=1;const o=document.createElement('option');o.value=n;dl.appendChild(o);}});
-  else [].concat(window.HOSPITALS||[],window.TCJ_HOSPITALS||[]).forEach(h=>{if(!seen[h.name]){seen[h.name]=1;const o=document.createElement('option');o.value=h.name;dl.appendChild(o);}});
+  else{const all={};Object.values(window.ZONE_TECH||{}).forEach(a=>a.forEach(n=>all[n]=1));Object.keys(all).sort(new Intl.Collator('th').compare).forEach(n=>{const o=document.createElement('option');o.value=n;dl.appendChild(o);});}   // ยังไม่มีเขต (น้องทดลองงาน) → ทุก รพ.
   const pl=$('#provList');pl.innerHTML='';const ps={};(window.TCJ_HOSPITALS||[]).forEach(h=>{if(h.province!=='กทม')ps[h.province]=1;});['กทม','นนทบุรี','ปทุมธานี','สมุทรปราการ','สมุทรสาคร','นครปฐม'].forEach(p=>ps[p]=1);Object.keys(ps).sort().forEach(p=>{const o=document.createElement('option');o.value=p;pl.appendChild(o);});
   switchTab('report');resetForm();
 }
@@ -1227,8 +1227,63 @@ function printPlan(sun){   // ฟอร์มแพลนเดิม (xlsx): �
     +'<div style="padding:10px"><table class="pl"><thead>'+r1+'</tr>'+r2+'</tr></thead><tbody>'+r3+'</tr>'+rm+'</tr>'+ra+'</tr></tbody></table></div></body></html>');
   w.document.close();setTimeout(function(){try{w.focus();w.print();}catch(e){}},600);
 }
-function planDlButtons(){const tw=sundayStart();return '<div class="dlrow"><button class="btn" data-pdl="'+tw+'">⬇ โหลดแพลนสัปดาห์นี้</button><button class="btn" data-pdl="'+addDays(tw,7)+'">⬇ โหลดแพลนสัปดาห์หน้า</button></div>';}
-function bindPlanDl(){$$('#planBody [data-pdl]').forEach(b=>b.onclick=()=>printPlan(b.dataset.pdl));}
+/* ===== โหลดแพลนเป็น Excel (.xlsx) ฟอร์มเดิม — เขียนไฟล์เองในเครื่อง ไม่ต้องใช้เน็ต ===== */
+function planCols(sun,cellsOf,isOff){
+  var dows=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'],mm=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'],out=[];
+  for(var i=0;i<7;i++){var k=addDays(sun,i),dd=new Date(k+'T00:00:00'),c=cellsOf(k);
+    out.push({dow:dows[i],date:dd.getDate()+'-'+mm[dd.getMonth()]+'-'+String(dd.getFullYear()%100).padStart(2,'0'),m:c[0]||'',a:c[1]||'',off:isOff(k)});}
+  return out;
+}
+function xlsxPlan(name,cols,fname){
+  var x=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
+  var L='ABCDEFGH',cell=function(r,c,v,st){return '<c r="'+L[c]+r+'" s="'+st+'"'+(v===''?'/>':' t="inlineStr"><is><t xml:space="preserve">'+x(v)+'</t></is></c>');};
+  var row=function(r,ht,cells){return '<row r="'+r+'"'+(ht?' ht="'+ht+'" customHeight="1"':'')+'>'+cells.join('')+'</row>';};
+  var r1=[cell(1,0,'',0)],r2=[cell(2,0,'',0)],r3=[cell(3,0,name,4)],r4=[cell(4,0,'เช้า',2)],r5=[cell(5,0,'บ่าย',2)];
+  cols.forEach(function(o,i){var c=i+1;r1.push(cell(1,c,o.dow,1));r2.push(cell(2,c,o.date,1));r3.push(cell(3,c,'',0));
+    r4.push(o.m?cell(4,c,o.m,2):(o.off?cell(4,c,'หยุด',3):cell(4,c,'',2)));
+    r5.push(o.a?cell(5,c,o.a,2):(o.off?cell(5,c,'หยุด',3):cell(5,c,'',2)));});
+  var sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    +'<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="8" width="22" customWidth="1"/></cols><sheetData>'
+    +row(1,0,r1)+row(2,0,r2)+row(3,0,r3)+row(4,90,r4)+row(5,90,r5)+'</sheetData>'
+    +'<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="1"/></worksheet>';
+  var styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    +'<fonts count="1"><font><sz val="12"/><name val="Tahoma"/></font></fonts>'
+    +'<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE7E6E6"/></patternFill></fill></fills>'
+    +'<borders count="2"><border/><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders>'
+    +'<cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="5"><xf/>'
+    +'<xf applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
+    +'<xf borderId="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
+    +'<xf fillId="2" borderId="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
+    +'<xf fillId="3" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  var files=[
+    ['[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+    ['_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="แพลน" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+    ['xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+    ['xl/worksheets/sheet1.xml',sheet],['xl/styles.xml',styles]];
+  var blob=zipStore(files);
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},4000);
+}
+function zipStore(files){   // zip แบบไม่บีบอัด (พอสำหรับ xlsx เล็กๆ)
+  var enc=new TextEncoder(),T=zipStore.t;
+  if(!T){T=zipStore.t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;T[n]=c>>>0;}}
+  var crc=function(b){var c=0xFFFFFFFF;for(var i=0;i<b.length;i++)c=T[(c^b[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;};
+  var parts=[],cen=[],off=0;
+  var u16=function(v){return [v&255,(v>>8)&255];},u32=function(v){return [v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255];};
+  files.forEach(function(f){var nm=enc.encode(f[0]),d=enc.encode(f[1]),c=crc(d);
+    var hd=[].concat(u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(0),u16(0x21),u32(c),u32(d.length),u32(d.length),u16(nm.length),u16(0));
+    parts.push(new Uint8Array(hd),nm,d);
+    cen.push(new Uint8Array([].concat(u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0x21),u32(c),u32(d.length),u32(d.length),u16(nm.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off))),nm);
+    off+=hd.length+nm.length+d.length;});
+  var cs=cen.reduce(function(s,b){return s+b.length;},0);
+  var end=new Uint8Array([].concat(u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cs),u32(off),u16(0)));
+  return new Blob(parts.concat(cen,[end]),{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function planXlsx(sun){xlsxPlan(currentTech.name,planCols(sun,k=>{const p=planOfDay(k);return ['เช้า','บ่าย'].map(s=>{const e=p[s];return e&&e.hospital?e.hospital+(e.detail?'\n'+e.detail:''):'';});},k=>dayInfo(k).off),'แพลน '+currentTech.name+' '+sun+'.xlsx');}
+function planDlButtons(){const tw=sundayStart();return '<div class="dlrow"><button class="btn" data-pdl="'+tw+'">⬇ PDF แพลนสัปดาห์นี้</button><button class="btn" data-pdl="'+addDays(tw,7)+'">⬇ PDF แพลนสัปดาห์หน้า</button></div>'+
+  '<div class="dlrow" style="margin-top:-4px"><button class="btn" data-pxl="'+tw+'">📊 Excel แพลนสัปดาห์นี้</button><button class="btn" data-pxl="'+addDays(tw,7)+'">📊 Excel แพลนสัปดาห์หน้า</button></div>';}
+function bindPlanDl(){$$('#planBody [data-pdl]').forEach(b=>b.onclick=()=>printPlan(b.dataset.pdl));$$('#planBody [data-pxl]').forEach(b=>b.onclick=()=>planXlsx(b.dataset.pxl));}
 function renderPlanMonth(){
   if(!planMonth){const d=new Date();planMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';}
   const first=new Date(planMonth+'T00:00:00'),y=first.getFullYear(),mo=first.getMonth();
@@ -1290,7 +1345,7 @@ function renderPlan(){
     });
     h+='</div>';
   }
-  h+=planSummaryHtml(ws)+'<div class="dlrow"><button class="btn" data-pdl="'+ws+'">⬇ โหลดแพลนสัปดาห์นี้ (อา '+fmtD(kd(ws))+' – ส '+fmtD(kd(addDays(ws,6)))+')</button></div>';
+  h+=planSummaryHtml(ws)+'<div style="font-size:12px;color:var(--mut);margin-top:12px;text-align:center">โหลดแพลน อา '+fmtD(kd(ws))+' – ส '+fmtD(kd(addDays(ws,6)))+'</div><div class="dlrow" style="margin-top:6px"><button class="btn" data-pdl="'+ws+'">⬇ PDF</button><button class="btn" data-pxl="'+ws+'">📊 Excel</button></div>';
   $('#planBody').innerHTML=h;bindPlanDl();
   $$('#planBody [data-nav]').forEach(b=>b.onclick=()=>{const dd=new Date(ws+'T00:00:00');dd.setDate(dd.getDate()+7*parseInt(b.dataset.nav));planWeek=dkey(dd);renderPlan();});
   $$('#planBody .planslot').forEach(el=>el.onclick=()=>editPlanSlot(ws,el.dataset.dk,el.dataset.slot));
