@@ -71,7 +71,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
   </div>
   <div class="demo" id="demoBar"></div>
   <div class="tabs" id="tabs">
-    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">✅ ตรวจรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="pt">🛵 ค่าจุด กทม.+ปริมณฑล</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
+    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">✅ ตรวจรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด กทม.+ปริมณฑล</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
   </div>
   <div class="wrap" id="view"></div>
 </div>
@@ -176,6 +176,24 @@ function vReview(){
   const oa=$('#okAll');if(oa)oa.onclick=()=>{list.filter(r=>r.status==='รอตรวจ').forEach(r=>set(r.id,'ผ่าน'));vReview();count();};
   document.querySelectorAll('.rec .ph img').forEach(im=>im.onclick=()=>{const o=document.createElement('div');o.className='ov';o.innerHTML='<img src="'+im.src+'">';o.onclick=()=>o.remove();document.body.appendChild(o);});
 }
+/* ===== งานอื่นๆ (K1 · ยังไม่มีคะแนน) — เก็บไว้ดูว่าใครทำอะไร จะได้เพิ่มเป็นรายการงาน + ให้คะแนนในอนาคต ===== */
+let otAll=false;
+const otText=r=>(r.desc||'').trim()||String(r.label||'').replace(/^งานอื่นๆ\s*—\s*/,'').trim()||'(ไม่ได้เขียนรายละเอียด)';
+const otList=()=>RECS.filter(r=>r.code==='K1'&&(otAll||inMonth(r)));
+function vOther(){
+  const L=otList().sort((a,b)=>a.dateKey<b.dateKey?1:-1),who={},grp={};
+  L.forEach(r=>{(who[r.tech]=who[r.tech]||[]).push(r);const k=otText(r).toLowerCase().replace(/\s+/g,' ');(grp[k]=grp[k]||{t:otText(r),n:0,techs:new Set(),last:''});grp[k].n++;grp[k].techs.add(r.tech);if(r.dateKey>grp[k].last)grp[k].last=r.dateKey;});
+  const tn=n=>{const t=TECHS.find(x=>x.name===n);return t?nick(t):n.split(' ')[0];};
+  let h='<div class="filters"><button class="btn'+(otAll?'':' pri')+'" id="otM">เดือนที่เลือก</button><button class="btn'+(otAll?' pri':'')+'" id="otA">ทั้งหมด (6 เดือนล่าสุด)</button><span style="flex:1"></span><button class="btn" id="otX">⬇ Excel</button></div>';
+  h+='<div class="cards"><div class="kpi"><div class="l">งานอื่นๆ ทั้งหมด</div><div class="v">'+L.length+'</div><div class="s">ครั้ง</div></div><div class="kpi"><div class="l">ช่างที่มีงานอื่นๆ</div><div class="v">'+Object.keys(who).length+'</div><div class="s">คน</div></div><div class="kpi"><div class="l">ชนิดงาน (ไม่นับซ้ำ)</div><div class="v">'+Object.keys(grp).length+'</div><div class="s">แบบ</div></div></div>';
+  if(!L.length){$('#view').innerHTML=h+'<div class="box empty">ยังไม่มีงานอื่นๆ ในช่วงนี้</div>';otBind([]);return;}
+  h+='<div class="box"><h3>👷 ใครมีบ้าง</h3><table><tr><th>ช่าง</th><th class="n">ครั้ง</th><th>งานที่เขียนมา</th></tr>'+Object.keys(who).sort((a,b)=>who[b].length-who[a].length).map(n=>'<tr><td><b>'+esc(tn(n))+'</b><div style="font-size:11.5px;color:var(--mut)">'+esc(n)+'</div></td><td class="n"><span class="chip c-ok">'+who[n].length+'</span></td><td>'+who[n].map(r=>'<div style="margin:2px 0">• '+esc(otText(r))+' <span style="color:var(--mut);font-size:11.5px">— '+thD(r.dateKey)+' · '+esc(r.hospital)+'</span></div>').join('')+'</td></tr>').join('')+'</table></div>';
+  h+='<div class="box"><h3>🔁 งานที่เจอบ่อย (ไว้พิจารณาเพิ่มเป็นรายการ + ให้คะแนน)</h3><table><tr><th>งาน</th><th class="n">ครั้ง</th><th>ช่าง</th><th>ล่าสุด</th></tr>'+Object.values(grp).sort((a,b)=>b.n-a.n).map(g=>'<tr><td>'+esc(g.t)+'</td><td class="n"><b>'+g.n+'</b></td><td>'+[...g.techs].map(tn).map(esc).join(', ')+'</td><td>'+thD(g.last)+'</td></tr>').join('')+'</table></div>';
+  $('#view').innerHTML=h;otBind(L);
+}
+function otBind(L){$('#otM').onclick=()=>{otAll=false;vOther();};$('#otA').onclick=()=>{otAll=true;vOther();};
+  $('#otX').onclick=()=>{const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';const rows=[['วันที่','ช่าง','ชื่อเล่น','สถานที่','งานที่ทำ','ปัญหา','สถานะ','ผู้ตรวจ']].concat(L.map(r=>{const t=TECHS.find(x=>x.name===r.tech);return [r.dateKey,r.tech,t?nick(t):'',r.hospital,otText(r),r.note||'',r.status,r.by||''];}));
+    const b=new Blob(['﻿'+rows.map(x=>x.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='งานอื่นๆ-ช่าง-'+(otAll?'ทั้งหมด':month)+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),2000);};}
 function vScore(){
   const rows=TECHS.map(t=>{const m=RECS.filter(r=>r.tech===t.name&&inMonth(r));const ok=m.filter(r=>r.status==='ผ่าน');
     return {t:t,pts:ok.reduce((a,r)=>a+r.pt,0),nOk:ok.length,wait:m.filter(r=>r.status==='รอตรวจ'||r.status==='รอเอกสาร').reduce((a,r)=>a+r.pt,0),no:m.filter(r=>r.status==='ไม่ผ่าน').length,
@@ -208,8 +226,8 @@ function vWeek(){
   $('#view').innerHTML=h+'</table></div>';
   $('#wTech').onchange=e=>{wkTech=e.target.value;vWeek();};$('#wPrev').onclick=()=>{wkStart=addD(wkStart,-7);vWeek();};$('#wNext').onclick=()=>{wkStart=addD(wkStart,7);vWeek();};
 }
-function count(){$('#nWait').textContent=RECS.filter(r=>inMonth(r)&&(r.status==='รอตรวจ'||r.status==='รอเอกสาร')).length||'';}
-function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,pt:vPoint,wk:vWeek})[t]();count();window.scrollTo(0,0);}
+function count(){$('#nWait').textContent=RECS.filter(r=>inMonth(r)&&(r.status==='รอตรวจ'||r.status==='รอเอกสาร')).length||'';$('#nOt').textContent=RECS.filter(r=>inMonth(r)&&r.code==='K1').length||'';}
+function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pt:vPoint,wk:vWeek})[t]();count();window.scrollTo(0,0);}
 // ===== บันทึกผลตรวจเข้าระบบกลาง (เฉพาะข้อมูลจริง) =====
 function postRev(id,s,reason){if(!LIVE||sampleOn())return;fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:'tech',op:'review',id:id,status:s,by:REVIEWER,reason:reason||''})}).then(r=>r.json()).then(j=>{if(!j.ok)throw 0;}).catch(()=>alert('บันทึกผลตรวจเข้าระบบไม่สำเร็จ — เช็กเน็ตแล้วกดใหม่อีกครั้งนะคะ'));}
 // ===== start =====
