@@ -52,6 +52,8 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
 <div id="login" class="login">
   <img src="endo-logo.png" alt="ENDOSCOPE & SERVICE">
   <div style="font-weight:800;color:var(--brand);margin-top:10px">Dashboard ตรวจรายงานช่าง</div>
+  <select id="rvSel" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;margin:14px 0 0;font-size:15px;text-align:center;background:#fff"><option value="">— เลือกชื่อผู้ตรวจ —</option><option>ยุ้ย (ศุภรัตน์ ซ้ายสุข)</option><option>เปิ้ล (ดาวรุ่ง วงศ์สารัตน์)</option><option value="__other">อื่นๆ (พิมพ์ชื่อเอง)</option></select>
+  <input id="rvName" class="hidden" placeholder="พิมพ์ชื่อผู้ตรวจ" autocomplete="name" style="margin-bottom:0">
   <input id="pw" type="password" placeholder="รหัสผ่าน" autocomplete="current-password">
   <div class="err" id="pwErr"></div>
   <button class="btn pri" style="width:100%" id="pwGo">เข้าใช้งาน</button>
@@ -63,9 +65,10 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
     <div class="t">Dashboard ตรวจรายงานช่าง<small>คะแนน · ค่าจุด · รายงานรายสัปดาห์</small></div>
     <div class="sp"></div>
     <select id="selMonth"></select>
+    <span id="who" style="font-size:12.5px;color:var(--brand);font-weight:700"></span>
     <button class="btn" id="logout">ออก</button>
   </div>
-  <div class="demo">🧪 ตัวอย่างหน้าตา — ข้อมูลสมมติ (ยังไม่ต่อแอปช่างจริง) · กดผ่าน/ไม่ผ่านได้ จำไว้ในเครื่องนี้ · <a href="#" id="resetDemo">ล้างการตรวจตัวอย่าง</a></div>
+  <div class="demo" id="demoBar"></div>
   <div class="tabs" id="tabs">
     <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">✅ ตรวจรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="pt">🛵 ค่าจุด กทม.+ปริมณฑล</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
   </div>
@@ -108,13 +111,18 @@ function buildDemo(){
           let st=age>6?(rnd()<.92?'ผ่าน':'ไม่ผ่าน'):(age>2?(rnd()<.55?'ผ่าน':'รอตรวจ'):'รอตรวจ');if(T[0]==='G1'&&st==='รอตรวจ'&&rnd()<.5)st='รอเอกสาร';
           const n=1+Math.floor(rnd()*3),hue=Math.floor(rnd()*360);
           recs.push({id:t.name+'|'+k+'|'+p+'|'+j,tech:t.name,dateKey:k,hospital:h,code:T[0],label:T[2]===0?'งานอื่นๆ — '+pick(['ติดตั้งจอห้อง OR 3','ย้ายเครื่องไปตึกใหม่','ช่วยงานคลังสินค้า']):T[1],pt:T[2],desc:pick(DESC),note:pick(PROB),
-            photos:Array.from({length:n},(_,q)=>photo(T[0]+' รูป '+(q+1),hue+q*25)),status:st,reason:st==='ไม่ผ่าน'?pick(['รูปไม่ตรงงาน','ไม่มีใบเซ็นลูกค้า','ซ้ำกับวันก่อน']):'',ts:k+'T17:'+String(10+Math.floor(rnd()*40))});}}}});
+            photos:Array.from({length:n},(_,q)=>photo(T[0]+' รูป '+(q+1),hue+q*25)),status:st,by:st==='ผ่าน'||st==='ไม่ผ่าน'?'หัวหน้าช่าง (ตัวอย่าง)':'',reason:st==='ไม่ผ่าน'?pick(['รูปไม่ตรงงาน','ไม่มีใบเซ็นลูกค้า','ซ้ำกับวันก่อน']):'',ts:k+'T17:'+String(10+Math.floor(rnd()*40))});}}}});
   return recs;
 }
-let RECS=buildDemo();
+const SKEY='endo_dash_sample';
+function sampleOn(){try{return localStorage.getItem(SKEY)==='1'}catch(e){return false}}
+let RECS=sampleOn()?buildDemo():[];
 function loadRev(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return{}}}
 function saveRev(m){try{localStorage.setItem(KEY,JSON.stringify(m))}catch(e){}}
-function applyRev(){const m=loadRev();RECS.forEach(r=>{if(m[r.id]){r.status=m[r.id].s;r.reason=m[r.id].r||'';}});}
+function applyRev(){const m=loadRev();RECS.forEach(r=>{if(m[r.id]){r.status=m[r.id].s;r.reason=m[r.id].r||'';r.by=m[r.id].by||'';r.at=m[r.id].at||'';}});}
+let REVIEWER='';try{REVIEWER=localStorage.getItem('endo_dash_reviewer')||''}catch(e){}
+const fmtAt=a=>{if(!a)return '';const d=new Date(a);return d.getDate()+' '+MON[d.getMonth()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+const byLine=r=>r.by?'<div class="m" style="text-align:right">ตรวจโดย <b>'+esc(r.by)+'</b>'+(r.at?' · '+fmtAt(r.at):'')+'</div>':'';
 applyRev();
 // ===== state =====
 let tab='ov', month=TODAY.slice(0,7), fTech='', fStat='รอตรวจ', wkTech=TECHS[0]&&TECHS[0].name, wkStart=monOf(TODAY);
@@ -151,18 +159,18 @@ function vReview(){
       '<div class="d"><b>'+r.code+'</b> '+esc(r.label)+'</div>'+(r.desc?'<div class="d" style="color:#555">'+esc(r.desc)+'</div>':'')+(r.note?'<div class="p">⚠ '+esc(r.note)+'</div>':'')+
       '<div class="ph">'+r.photos.map(p=>'<img src="'+p+'">').join('')+'</div></div>'+
       '<div class="act"><div class="pts">'+r.pt+' <small>คะแนน</small></div>'+
-      (r.status==='ผ่าน'||r.status==='ไม่ผ่าน'?(r.reason?'<div class="reason">เหตุผล: '+esc(r.reason)+'</div>':'')+'<button class="btn" data-undo="'+esc(r.id)+'">↩ ย้อนเป็นรอตรวจ</button>':
+      (r.status==='ผ่าน'||r.status==='ไม่ผ่าน'?byLine(r)+(r.reason?'<div class="reason">เหตุผล: '+esc(r.reason)+'</div>':'')+'<button class="btn" data-undo="'+esc(r.id)+'">↩ ย้อนเป็นรอตรวจ</button>':
         '<button class="btn ok" data-ok="'+esc(r.id)+'">✅ ผ่าน</button><button class="btn no" data-no="'+esc(r.id)+'">⛔ ไม่ผ่าน</button>')+'</div></div>';});
   if(list.length>150)h+='<div style="text-align:center;color:var(--mut)">แสดง 150 รายการแรก — เลือกช่างเพื่อดูเฉพาะคน</div>';
   if(!list.length)h+='<div class="box" style="text-align:center;color:var(--mut)">ไม่มีงานในหมวดนี้ 🎉</div>';
   $('#view').innerHTML=h;
   $('#fTech').onchange=e=>{fTech=e.target.value;vReview();};
   document.querySelectorAll('#fStat button').forEach(b=>b.onclick=()=>{fStat=b.dataset.s;vReview();});
-  const set=(id,s,reason)=>{const m=loadRev();m[id]={s:s,r:reason||''};saveRev(m);const r=RECS.find(x=>x.id===id);r.status=s;r.reason=reason||'';};
+  const set=(id,s,reason)=>{const at=new Date().toISOString(),m=loadRev();m[id]={s:s,r:reason||'',by:REVIEWER,at:at};saveRev(m);const r=RECS.find(x=>x.id===id);r.status=s;r.reason=reason||'';r.by=REVIEWER;r.at=at;};
   document.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>{set(b.dataset.ok,'ผ่าน');vReview();count();});
   document.querySelectorAll('[data-no]').forEach(b=>b.onclick=()=>{const box=b.parentNode;box.innerHTML='<select class="btn" style="font-weight:400">'+['รูปไม่ตรงงาน','ไม่มีใบเซ็นลูกค้า','ซ้ำกับวันก่อน','รายละเอียดไม่พอ','อื่นๆ'].map(x=>'<option>'+x+'</option>').join('')+'</select><button class="btn no">ยืนยัน ไม่ผ่าน</button><button class="btn">ยกเลิก</button>';
     const [sel,yes,cancel]=box.children;yes.onclick=()=>{set(b.dataset.no,'ไม่ผ่าน',sel.value);vReview();count();};cancel.onclick=vReview;});
-  document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>{const m=loadRev();m[b.dataset.undo]={s:'รอตรวจ'};saveRev(m);const r=RECS.find(x=>x.id===b.dataset.undo);r.status='รอตรวจ';r.reason='';vReview();count();});
+  document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>{const m=loadRev();m[b.dataset.undo]={s:'รอตรวจ'};saveRev(m);const r=RECS.find(x=>x.id===b.dataset.undo);r.status='รอตรวจ';r.reason='';r.by='';r.at='';vReview();count();});
   const oa=$('#okAll');if(oa)oa.onclick=()=>{list.filter(r=>r.status==='รอตรวจ').forEach(r=>set(r.id,'ผ่าน'));vReview();count();};
   document.querySelectorAll('.rec .ph img').forEach(im=>im.onclick=()=>{const o=document.createElement('div');o.className='ov';o.innerHTML='<img src="'+im.src+'">';o.onclick=()=>o.remove();document.body.appendChild(o);});
 }
@@ -194,20 +202,30 @@ function vWeek(){
   days.forEach(k=>{const it=RECS.filter(r=>r.tech===wkTech&&r.dateKey===k);const dn='วัน'+DOWF[kd(k).getDay()]+'ที่<br>'+thD(k).split(' ').slice(1).join(' ');
     if(!it.length){h+='<tr><td>'+dn+'</td><td colspan="6" style="text-align:center;color:#888">'+([0,6].indexOf(kd(k).getDay())>=0?'วันหยุด':'-')+'</td></tr>';return;}
     const g={},o=[];it.forEach(r=>{if(!g[r.hospital]){g[r.hospital]=[];o.push(r.hospital);}g[r.hospital].push(r);});
-    o.forEach((hn,gi)=>{const x=g[hn];h+='<tr>'+(gi?'':'<td rowspan="'+o.length+'">'+dn+'</td>')+'<td><b>'+esc(hn)+'</b></td><td>'+x.map(r=>esc(r.code+' '+r.label)).join('<br>')+'</td><td>'+(x.map(r=>r.desc?'- '+esc(r.desc):'').filter(Boolean).join('<br>')||'-')+'</td><td>'+(x.map(r=>r.note?'- '+esc(r.note):'').filter(Boolean).join('<br>')||'-')+'</td><td>'+x.map(r=>badge(r.status)).join('<br>')+'</td><td class="pics">'+x.reduce((a,r)=>a.concat(r.photos),[]).map(p=>'<img src="'+p+'">').join('')+'</td></tr>';});});
+    o.forEach((hn,gi)=>{const x=g[hn];h+='<tr>'+(gi?'':'<td rowspan="'+o.length+'">'+dn+'</td>')+'<td><b>'+esc(hn)+'</b></td><td>'+x.map(r=>esc(r.code+' '+r.label)).join('<br>')+'</td><td>'+(x.map(r=>r.desc?'- '+esc(r.desc):'').filter(Boolean).join('<br>')||'-')+'</td><td>'+(x.map(r=>r.note?'- '+esc(r.note):'').filter(Boolean).join('<br>')||'-')+'</td><td>'+x.map(r=>badge(r.status)+(r.by?'<div style="font-size:10.5px;color:#777">'+esc(r.by)+'</div>':'')).join('<br>')+'</td><td class="pics">'+x.reduce((a,r)=>a.concat(r.photos),[]).map(p=>'<img src="'+p+'">').join('')+'</td></tr>';});});
   $('#view').innerHTML=h+'</table></div>';
   $('#wTech').onchange=e=>{wkTech=e.target.value;vWeek();};$('#wPrev').onclick=()=>{wkStart=addD(wkStart,-7);vWeek();};$('#wNext').onclick=()=>{wkStart=addD(wkStart,7);vWeek();};
 }
 function count(){$('#nWait').textContent=RECS.filter(r=>inMonth(r)&&(r.status==='รอตรวจ'||r.status==='รอเอกสาร')).length||'';}
 function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,pt:vPoint,wk:vWeek})[t]();count();window.scrollTo(0,0);}
 // ===== start =====
-(function(){const s=$('#selMonth');const ms=[...new Set(RECS.map(r=>r.dateKey.slice(0,7)))].sort().reverse();
-  s.innerHTML=ms.map(m=>'<option value="'+m+'">'+MONF[+m.slice(5)-1]+' '+(+m.slice(0,4)+543)+'</option>').join('');s.value=month;s.onchange=()=>{month=s.value;go(tab);};})();
+function months(){const s=$('#selMonth');const ms=[...new Set(RECS.map(r=>r.dateKey.slice(0,7)).concat([TODAY.slice(0,7)]))].sort().reverse();
+  s.innerHTML=ms.map(m=>'<option value="'+m+'">'+MONF[+m.slice(5)-1]+' '+(+m.slice(0,4)+543)+'</option>').join('');s.value=month;s.onchange=()=>{month=s.value;go(tab);};}
+months();
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(b.dataset.t==='rv'&&tab!=='rv'){fStat='รอตรวจ';}go(b.dataset.t);});
-$('#resetDemo').onclick=e=>{e.preventDefault();try{localStorage.removeItem(KEY)}catch(x){}seed=7;RECS=buildDemo();go(tab);};
 $('#logout').onclick=()=>{try{sessionStorage.removeItem('endo_dash')}catch(e){}location.reload();};
-function enter(){$('#login').classList.add('hidden');$('#app').classList.remove('hidden');go('ov');}
-$('#pwGo').onclick=()=>{if($('#pw').value===PASS){try{sessionStorage.setItem('endo_dash','1')}catch(e){}enter();}else $('#pwErr').textContent='รหัสไม่ถูกต้อง';};
+function demoBar(){const on=sampleOn();$('#demoBar').innerHTML=(on?'🧪 กำลังดู<b>ข้อมูลตัวอย่าง</b> (สมมติ) · ผลตรวจจำไว้ในเครื่องนี้ · <a href="#" id="resetDemo">ล้างผลตรวจ</a> · <a href="#" id="sampleOff">ปิดข้อมูลตัวอย่าง</a>'
+  :'📭 ยังไม่มีรายงาน — เมื่อต่อระบบจริง รายงานจากแอปช่างจะขึ้นที่นี่ · <a href="#" id="sampleOn">ดูข้อมูลตัวอย่าง</a>');
+  const a=$('#sampleOn'),b=$('#sampleOff'),c=$('#resetDemo');
+  if(a)a.onclick=e=>{e.preventDefault();try{localStorage.setItem(SKEY,'1')}catch(x){}seed=7;RECS=buildDemo();applyRev();months();demoBar();go(tab);};
+  if(b)b.onclick=e=>{e.preventDefault();try{localStorage.removeItem(SKEY)}catch(x){}RECS=[];months();demoBar();go(tab);};
+  if(c)c.onclick=e=>{e.preventDefault();try{localStorage.removeItem(KEY)}catch(x){}seed=7;RECS=buildDemo();go(tab);};}
+function enter(){$('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#who').textContent='ผู้ตรวจ: '+REVIEWER;demoBar();go('ov');}
+(function(){let v='';try{v=localStorage.getItem('endo_dash_reviewer')||''}catch(e){}const sel=$('#rvSel');
+  if(v){if([...sel.options].some(o=>o.value===v))sel.value=v;else{sel.value='__other';$('#rvName').classList.remove('hidden');$('#rvName').value=v;}}
+  sel.onchange=()=>{$('#rvName').classList.toggle('hidden',sel.value!=='__other');if(sel.value==='__other')$('#rvName').focus();};})();
+$('#pwGo').onclick=()=>{const sv=$('#rvSel').value,nm=(sv==='__other'?$('#rvName').value:sv).trim();if(!nm){$('#pwErr').textContent='ใส่ชื่อผู้ตรวจก่อนนะคะ';$('#rvName').focus();return;}REVIEWER=nm;try{localStorage.setItem('endo_dash_reviewer',nm)}catch(e){}
+  if($('#pw').value===PASS){try{sessionStorage.setItem('endo_dash','1')}catch(e){}enter();}else $('#pwErr').textContent='รหัสไม่ถูกต้อง';};
 $('#pw').onkeydown=e=>{if(e.key==='Enter')$('#pwGo').click();};
 try{if(sessionStorage.getItem('endo_dash')==='1')enter();}catch(e){}
 </script>
