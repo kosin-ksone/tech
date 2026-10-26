@@ -71,7 +71,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
   </div>
   <div class="demo" id="demoBar"></div>
   <div class="tabs" id="tabs">
-    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">✅ ตรวจรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด กทม.+ปริมณฑล</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
+    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">✅ ตรวจรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด กทม.+ปริมณฑล</button><button data-t="pl">📅 แพลนช่าง</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
   </div>
   <div class="wrap" id="view"></div>
 </div>
@@ -194,6 +194,25 @@ function vOther(){
 function otBind(L){$('#otM').onclick=()=>{otAll=false;vOther();};$('#otA').onclick=()=>{otAll=true;vOther();};
   $('#otX').onclick=()=>{const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';const rows=[['วันที่','ช่าง','ชื่อเล่น','สถานที่','งานที่ทำ','ปัญหา','สถานะ','ผู้ตรวจ']].concat(L.map(r=>{const t=TECHS.find(x=>x.name===r.tech);return [r.dateKey,r.tech,t?nick(t):'',r.hospital,otText(r),r.note||'',r.status,r.by||''];}));
     const b=new Blob(['﻿'+rows.map(x=>x.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='งานอื่นๆ-ช่าง-'+(otAll?'ทั้งหมด':month)+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),2000);};}
+/* ===== แพลนช่าง — ดึงจากชีต "ตารางงานช่าง Service Engineer" (ช่างกรอกในชีตแบบเดิม) ===== */
+const PLAN_SHEET_URL='https://docs.google.com/spreadsheets/d/1ocR4eRjUBS0UT8mXqJbQ8acQSJbyMHPzEVL_HrfDFdU/edit';
+let SPLAN=null,splanErr='',plStart=monOf(TODAY),plQ='';
+function loadSplan(){if(!SYNC_URL)return;splanErr='';fetch(SYNC_URL+'?op=splan').then(r=>r.json()).then(j=>{if(!j.ok)throw 0;SPLAN=j.plans||{};if(tab==='pl')vPlan();}).catch(()=>{splanErr='โหลดแพลนไม่สำเร็จ';if(tab==='pl')vPlan();});}
+function vPlan(){
+  const days=Array.from({length:7},(_,i)=>addD(plStart,i));
+  let h='<div class="filters"><button class="btn" id="plPrev">◀</button><b>'+thD(days[0])+' – '+thD(days[6])+'</b><button class="btn" id="plNext">▶</button><button class="btn" id="plNow">สัปดาห์นี้</button><input id="plQ" placeholder="🔎 ค้นชื่อช่าง" value="'+esc(plQ)+'" style="width:150px"><span style="flex:1"></span><button class="btn" id="plRe">โหลดใหม่</button><a class="btn" href="'+PLAN_SHEET_URL+'" target="_blank" rel="noopener">เปิดชีต</a></div>';
+  if(!SYNC_URL){$('#view').innerHTML=h+'<div class="box empty">ยังไม่ได้ต่อระบบ</div>';return;}
+  if(!SPLAN){$('#view').innerHTML=h+'<div class="box empty">'+(splanErr||'⏳ กำลังโหลดแพลนจากชีต…')+'</div>';plBind();if(!splanErr)loadSplan();return;}
+  const names=Object.keys(SPLAN).filter(n=>days.some(d=>SPLAN[n][d])).filter(n=>!plQ||n.indexOf(plQ)>=0);
+  h+='<div class="note">ดึงจากชีต "ตารางงานช่าง Service Engineer" · ช่างกรอก/แก้ที่ชีต · อัปเดตทุก 5 นาที · มี ✓ = ส่งรายงานวันนั้นแล้ว</div><div class="box"><table style="min-width:1100px"><tr><th style="width:120px">ช่าง</th>'+days.map(d=>'<th>'+thD(d)+'</th>').join('')+'</tr>';
+  names.forEach(n=>{const base=n.trim().split(/[\s(\-–]/)[0],t=TECHS.find(x=>x.name.split(' ')[0]===base&&(n.indexOf('(')<0||!x.nick||n.indexOf(x.nick)>=0))||TECHS.find(x=>x.name.split(' ')[0]===base);
+    h+='<tr><td><b>'+esc(n)+'</b></td>'+days.map(d=>{const c=SPLAN[n][d]||{},off=/วันหยุด|ลา/.test((c['เช้า']||'')+(c['บ่าย']||'')),done=t&&RECS.some(r=>r.tech===t.name&&r.dateKey===d);
+      return '<td style="font-size:11.5px;vertical-align:top;'+(off?'background:#FFF6D6;':'')+'">'+(done?'<span class="chip c-ok" style="float:right">✓</span>':'')+['เช้า','บ่าย'].map(s=>c[s]?'<div style="margin-bottom:3px"><b style="color:var(--mut);font-size:10.5px">'+s+'</b> '+esc(c[s])+'</div>':'').join('')+'</td>';}).join('')+'</tr>';});
+  if(!names.length)h+='<tr><td colspan="8" class="empty">ไม่มีแพลนในสัปดาห์นี้</td></tr>';
+  $('#view').innerHTML=h+'</table></div>';plBind();
+}
+function plBind(){$('#plPrev').onclick=()=>{plStart=addD(plStart,-7);vPlan();};$('#plNext').onclick=()=>{plStart=addD(plStart,7);vPlan();};$('#plNow').onclick=()=>{plStart=monOf(TODAY);vPlan();};
+  $('#plRe').onclick=()=>{SPLAN=null;vPlan();};const q=$('#plQ');q.oninput=()=>{plQ=q.value.trim();const p=q.selectionStart;vPlan();const q2=$('#plQ');q2.focus();q2.setSelectionRange(p,p);};}
 function vScore(){
   const rows=TECHS.map(t=>{const m=RECS.filter(r=>r.tech===t.name&&inMonth(r));const ok=m.filter(r=>r.status==='ผ่าน');
     return {t:t,pts:ok.reduce((a,r)=>a+r.pt,0),nOk:ok.length,wait:m.filter(r=>r.status==='รอตรวจ'||r.status==='รอเอกสาร').reduce((a,r)=>a+r.pt,0),no:m.filter(r=>r.status==='ไม่ผ่าน').length,k1:m.filter(r=>r.code==='K1').length,
@@ -229,7 +248,7 @@ function vWeek(){
   $('#wTech').onchange=e=>{wkTech=e.target.value;vWeek();};$('#wPrev').onclick=()=>{wkStart=addD(wkStart,-7);vWeek();};$('#wNext').onclick=()=>{wkStart=addD(wkStart,7);vWeek();};
 }
 function count(){$('#nWait').textContent=RECS.filter(r=>inMonth(r)&&(r.status==='รอตรวจ'||r.status==='รอเอกสาร')).length||'';$('#nOt').textContent=RECS.filter(r=>inMonth(r)&&r.code==='K1').length||'';}
-function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pt:vPoint,wk:vWeek})[t]();count();window.scrollTo(0,0);}
+function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pl:vPlan,pt:vPoint,wk:vWeek})[t]();count();window.scrollTo(0,0);}
 // ===== บันทึกผลตรวจเข้าระบบกลาง (เฉพาะข้อมูลจริง) =====
 function postRev(id,s,reason){if(!LIVE||sampleOn())return;fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:'tech',op:'review',id:id,status:s,by:REVIEWER,reason:reason||''})}).then(r=>r.json()).then(j=>{if(!j.ok)throw 0;}).catch(()=>alert('บันทึกผลตรวจเข้าระบบไม่สำเร็จ — เช็กเน็ตแล้วกดใหม่อีกครั้งนะคะ'));}
 // ===== start =====
