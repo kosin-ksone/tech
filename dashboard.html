@@ -196,13 +196,15 @@ function otBind(L){$('#otM').onclick=()=>{otAll=false;vOther();};$('#otA').oncli
     const b=new Blob(['﻿'+rows.map(x=>x.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='งานอื่นๆ-ช่าง-'+(otAll?'ทั้งหมด':month)+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),2000);};}
 function vScore(){
   const rows=TECHS.map(t=>{const m=RECS.filter(r=>r.tech===t.name&&inMonth(r));const ok=m.filter(r=>r.status==='ผ่าน');
-    return {t:t,pts:ok.reduce((a,r)=>a+r.pt,0),nOk:ok.length,wait:m.filter(r=>r.status==='รอตรวจ'||r.status==='รอเอกสาร').reduce((a,r)=>a+r.pt,0),no:m.filter(r=>r.status==='ไม่ผ่าน').length,
+    return {t:t,pts:ok.reduce((a,r)=>a+r.pt,0),nOk:ok.length,wait:m.filter(r=>r.status==='รอตรวจ'||r.status==='รอเอกสาร').reduce((a,r)=>a+r.pt,0),no:m.filter(r=>r.status==='ไม่ผ่าน').length,k1:m.filter(r=>r.code==='K1').length,
       grp:ok.reduce((a,r)=>{a[r.code[0]]=(a[r.code[0]]||0)+r.pt;return a;},{})};}).sort((a,b)=>b.pts-a.pts);
   const max=Math.max(1,...rows.map(r=>r.pts));
-  let h='<div class="note">คะแนนเดือน '+MONF[+month.slice(5)-1]+' '+(+month.slice(0,4)+543)+' · นับเฉพาะงานที่ผ่านตรวจ · "รอตรวจ" = คะแนนที่จะได้ถ้าผ่าน</div><div class="box"><table><tr><th>#</th><th>ช่าง</th><th>เขต</th><th class="n">คะแนน</th><th></th><th class="n">งานผ่าน</th><th class="n">ไม่ผ่าน</th><th class="n">รอตรวจ (คะแนน)</th><th>แยกกลุ่ม (A–K)</th></tr>';
-  rows.forEach((r,i)=>{h+='<tr class="click" data-tech="'+esc(r.t.name)+'"><td>'+(i+1)+'</td><td><b>'+esc(nick(r.t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(r.t.name)+'</span></td><td>'+(isBkk(r.t)?'กทม.':'ตจว.')+'</td><td class="n"><b>'+r.pts+'</b></td><td style="width:18%"><div class="bar"><i style="width:'+(r.pts/max*100)+'%"></i></div></td><td class="n">'+r.nOk+'</td><td class="n">'+(r.no||'')+'</td><td class="n">'+(r.wait||'')+'</td><td style="font-size:12px;color:#555">'+Object.keys(r.grp).sort().map(g=>g+' '+r.grp[g]).join(' · ')+'</td></tr>';});
-  $('#view').innerHTML=h+'</table></div>';
+  let h='<div class="note">คะแนนเดือน '+MONF[+month.slice(5)-1]+' '+(+month.slice(0,4)+543)+' · นับเฉพาะงานที่ผ่านตรวจ · "รอตรวจ" = คะแนนที่จะได้ถ้าผ่าน</div><div class="box"><table><tr><th>#</th><th>ช่าง</th><th>เขต</th><th class="n">คะแนน</th><th></th><th class="n">งานผ่าน</th><th class="n">ไม่ผ่าน</th><th class="n">รอตรวจ (คะแนน)</th><th class="n">งานไม่มีคะแนน<br><span style="font-weight:400;font-size:11px">(งานอื่นๆ K1)</span></th><th>แยกกลุ่ม (A–K)</th></tr>';
+  rows.forEach((r,i)=>{h+='<tr class="click" data-tech="'+esc(r.t.name)+'"><td>'+(i+1)+'</td><td><b>'+esc(nick(r.t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(r.t.name)+'</span></td><td>'+(isBkk(r.t)?'กทม.':'ตจว.')+'</td><td class="n"><b>'+r.pts+'</b></td><td style="width:18%"><div class="bar"><i style="width:'+(r.pts/max*100)+'%"></i></div></td><td class="n">'+r.nOk+'</td><td class="n">'+(r.no||'')+'</td><td class="n">'+(r.wait||'')+'</td><td class="n">'+(r.k1?'<a href="#" data-k1="1" style="font-weight:700;color:var(--brand)">'+r.k1+' งาน</a>':'')+'</td><td style="font-size:12px;color:#555">'+Object.keys(r.grp).sort().map(g=>g+' '+r.grp[g]).join(' · ')+'</td></tr>';});
+  const k1=rows.reduce((a,r)=>a+r.k1,0);
+  $('#view').innerHTML=h+'</table>'+(k1?'<div style="font-size:12px;color:var(--mut);margin-top:6px">งานไม่มีคะแนนรวม <b>'+k1+'</b> งาน · ระบบเก็บไว้ทุกรายการ ดูรวมได้ที่แท็บ <a href="#" data-k1="1">📝 งานอื่นๆ</a></div>':'')+'</div>';
   document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='ทั้งหมด';go('rv');});
+  document.querySelectorAll('[data-k1]').forEach(a=>a.onclick=e=>{e.preventDefault();e.stopPropagation();otAll=false;go('ot');});
 }
 function vPoint(){
   const bk=TECHS.filter(isBkk);let tot=0;
