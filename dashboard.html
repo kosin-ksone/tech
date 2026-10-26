@@ -278,6 +278,11 @@ function enter(){$('#login').classList.add('hidden');$('#app').classList.remove(
 $('#pwGo').onclick=()=>{const sv=$('#rvSel').value,nm=(sv==='__other'?$('#rvName').value:sv).trim();if(!nm){$('#pwErr').textContent='ใส่ชื่อผู้ตรวจก่อนนะคะ';$('#rvName').focus();return;}REVIEWER=nm;try{localStorage.setItem('endo_dash_reviewer',nm)}catch(e){}
   if($('#pw').value===PASS){try{sessionStorage.setItem('endo_dash','1')}catch(e){}enter();}else $('#pwErr').textContent='รหัสไม่ถูกต้อง';};
 $('#pw').onkeydown=e=>{if(e.key==='Enter')$('#pwGo').click();};
-try{if(sessionStorage.getItem('endo_dash')==='1')enter();}catch(e){}
+/* ===== เปิดจากแอป KOSIE (ลิงก์เดียวกับอนุมัติใบส้ม) — ?kosie=<โทเคน> เข้าได้เลย ไม่ต้องใส่ชื่อ/รหัส · เก็บแค่ค่า hash ในโค้ด ===== */
+const KOSIE_H='d935041312d7ea4e6ecc8482eb389194ebfc551fbcef84725f4b80f9257f0dd1';
+(async()=>{try{const t=new URLSearchParams(location.search).get('kosie');
+  if(t&&crypto.subtle){const h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+    if(h===KOSIE_H){REVIEWER='คุณโกสีห์ (KOSIE)';try{sessionStorage.setItem('endo_dash','1')}catch(e){}enter();return;}}
+  if(sessionStorage.getItem('endo_dash')==='1')enter();}catch(e){}})();
 </script>
 </body></html>
