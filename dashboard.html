@@ -142,11 +142,13 @@ function vOverview(){
     '<div class="kpi"><div class="l">ผ่านแล้ว (เดือนนี้)</div><div class="v" style="color:var(--ok)">'+ok.length+'</div><div class="s">ไม่ผ่าน '+no+' งาน</div></div>'+
     '<div class="kpi"><div class="l">คะแนนรวม (ผ่านแล้ว)</div><div class="v">'+pts.toLocaleString()+'</div><div class="s">ช่าง '+TECHS.length+' คน</div></div>'+
     '<div class="kpi"><div class="l">ค่าจุด กทม.+ปริมณฑล</div><div class="v">฿'+money.toLocaleString()+'</div><div class="s">นับเฉพาะงานที่ผ่านตรวจ</div></div></div>';
-  h+='<div class="box"><h3>ส่งรายงานสัปดาห์นี้ ('+thD(days[0])+' – '+thD(days[6])+')</h3><table><tr><th>ช่าง</th>'+days.map(k=>'<th class="n">'+thD(k).split(' ').slice(0,2).join(' ')+'</th>').join('')+'<th class="n">รอตรวจ</th></tr>';
+  h+='<div class="box"><h3>ส่งรายงานสัปดาห์นี้ ('+thD(days[0])+' – '+thD(days[6])+')</h3><table><tr><th>ช่าง</th>'+days.map(k=>'<th class="n">'+thD(k).split(' ').slice(0,2).join(' ')+'</th>').join('')+'<th class="n">รอตรวจ</th><th class="n">คะแนน<br><span style="font-weight:400;font-size:11px">ผ่านแล้ว · '+MON[+month.slice(5)-1]+'</span></th><th class="n">ค่าจุด<br><span style="font-weight:400;font-size:11px">'+MON[+month.slice(5)-1]+'</span></th></tr>';
   TECHS.forEach(t=>{h+='<tr class="click" data-tech="'+esc(t.name)+'"><td><b>'+esc(nick(t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(t.name)+'</span></td>'+days.map(k=>{const n=RECS.filter(r=>r.tech===t.name&&r.dateKey===k).length,dd=kd(k).getDay();
       return '<td class="n">'+(k>TODAY?'':(n?'<span class="chip '+(RECS.some(r=>r.tech===t.name&&r.dateKey===k&&r.lateDays)?'c-late':'c-ok')+'">'+n+'</span>':(dd===0||dd===6?'<span class="chip c-no">หยุด</span>':'<span class="chip c-off">–</span>')))+'</td>';}).join('')+
-    '<td class="n">'+(RECS.filter(r=>r.tech===t.name&&(r.status==='รอตรวจ'||r.status==='รอเอกสาร')).length||'')+'</td></tr>';});
-  h+='</table><div style="font-size:11.5px;color:var(--mut);margin-top:6px">ตัวเลข = จำนวนงานที่ส่ง · – = ไม่มีรายงาน · แตะชื่อช่างเพื่อตรวจงานของคนนั้น</div></div>';
+    '<td class="n">'+(RECS.filter(r=>r.tech===t.name&&(r.status==='รอตรวจ'||r.status==='รอเอกสาร')).length||'')+'</td>'+
+    (()=>{const tp=m.filter(r=>r.tech===t.name&&r.status==='ผ่าน').reduce((a,r)=>a+r.pt,0),tm=isBkk(t)?pointRows(t.name).reduce((a,x)=>a+x.rate,0):null;
+      return '<td class="n"><b>'+(tp||'')+'</b></td><td class="n">'+(tm===null?'<span style="color:var(--mut);font-size:11px">ตจว.</span>':(tm?'฿'+tm.toLocaleString():''))+'</td>';})()+'</tr>';});
+  h+='</table><div style="font-size:11.5px;color:var(--mut);margin-top:6px">ตัวเลข = จำนวนงานที่ส่ง · – = ไม่มีรายงาน · คะแนน/ค่าจุด = เดือนที่เลือก นับเฉพาะงานที่ผ่านตรวจ (ค่าจุดเฉพาะช่าง กทม.+ปริมณฑล) · แตะชื่อช่างเพื่อตรวจงานของคนนั้น</div></div>';
   $('#view').innerHTML=h;
   document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='รอตรวจ';go('rv');});
 }
