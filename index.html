@@ -1232,11 +1232,11 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 function weekTableHtml(ws,only,mon){   // only = เฉพาะวันนั้น (โหลดรายวัน) · mon={y,m} = ทั้งเดือน
   const wm=mon?{month:mon.m,year:mon.y}:weekOfMonth(ws);
   let h='<div class="pg"><div class="hd">'+(mon?'รายงานการทำงานประจำ':only?('รายงานการทำงานประจำวัน <u>&nbsp;วัน'+THAI_DOW[kd(only).getDay()]+'ที่ '+todayStr(kd(only))+'&nbsp;</u>'):('รายงานการทำงานสัปดาห์ที่ <u>&nbsp;'+wm.n+'&nbsp;</u>'))+' เดือน <u>&nbsp;'+TH_MONTH[wm.month]+' '+(wm.year+543)+'&nbsp;</u> &nbsp; ชื่อผู้ปฏิบัติงาน <u>&nbsp;'+esc(currentTech.name)+'&nbsp;</u></div>'+
-    '<table><thead><tr><th style="width:7%">ประจำวัน</th><th style="width:12%">ทำที่ไหน</th><th style="width:13%">ทำอะไร</th><th style="width:16%">รายละเอียด</th><th style="width:12%">ปัญหาและแนวทางแก้ไข</th><th>ภาพประกอบ</th></tr></thead><tbody>';
+    '<table><thead><tr><th style="width:9%">ประจำวัน</th><th style="width:12%">ทำที่ไหน</th><th style="width:13%">ทำอะไร</th><th style="width:16%">รายละเอียด</th><th style="width:12%">ปัญหาและแนวทางแก้ไข</th><th>ภาพประกอบ</th></tr></thead><tbody>';
   if(only)h=h.replace(/ เดือน <u>.*?<\/u>/,'');
   (mon?monthDays(mon.y,mon.m):weekDays(ws)).forEach(d=>{
     if(only&&d.dk!==only)return;
-    const dn='วัน'+THAI_DOW[d.d.getDay()]+'ที่<br>'+todayStr(d.d);
+    const dn=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'][d.d.getDay()]+' '+d.d.getDate()+' '+['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.d.getMonth()]+' '+String((d.d.getFullYear()+543)%100);   // สั้น: จ. 26 ต.ค. 69
     if(!d.items.length){h+='<tr><td>'+dn+'</td><td colspan="5" class="off">'+(d.off?'วันหยุด'+(d.offName?' · '+esc(d.offName):''):'-')+'</td></tr>';return;}
     // แยก 1 แถวต่อ รพ. (งาน/รายละเอียด/ปัญหา/รูป ของ รพ. นั้น) · ช่องวันที่รวมแถว
     const g={},order=[];d.items.forEach(r=>{const k=(r.hospital||'-').trim();if(!g[k]){g[k]=[];order.push(k);}g[k].push(r);});
@@ -1290,7 +1290,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.8 · 26 ต.ค. 69';
+const APP_VER='v2.9 · 27 ต.ค. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
