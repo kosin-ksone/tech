@@ -53,7 +53,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
 <div id="login" class="login">
   <img src="endo-logo.png" alt="ENDOSCOPE & SERVICE">
   <div style="font-weight:800;color:var(--brand);margin-top:10px">Dashboard ตรวจรายงานช่าง</div>
-  <select id="rvSel" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;margin:14px 0 0;font-size:15px;text-align:center;background:#fff"><option value="">— เลือกชื่อผู้ตรวจ —</option><option>ยุ้ย (ศุภรัตน์ ซ้ายสุข)</option><option>เปิ้ล (ดาวรุ่ง วงศ์สารัตน์)</option><option value="__other">อื่นๆ (พิมพ์ชื่อเอง)</option></select>
+  <select id="rvSel" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;margin:14px 0 0;font-size:15px;text-align:center;background:#fff"><option value="">— เลือกชื่อผู้ตรวจ —</option><option>ยุ้ย (ศุภรัตน์ ซ้ายสุข)</option><option>เปิ้ล (ดาวรุ่ง วงศ์สารัตน์)</option><option>คุณโกสีห์ (KOSIE)</option><option value="__other">อื่นๆ (พิมพ์ชื่อเอง)</option></select>
   <input id="rvName" class="hidden" placeholder="พิมพ์ชื่อผู้ตรวจ" autocomplete="name" style="margin-bottom:0">
   <input id="pw" type="password" placeholder="รหัสผ่าน" autocomplete="current-password">
   <div class="err" id="pwErr"></div>
@@ -272,7 +272,7 @@ function demoBar(){const on=sampleOn();$('#demoBar').innerHTML=(on?'🧪 กำ�
   if(b)b.onclick=e=>{e.preventDefault();try{localStorage.removeItem(SKEY)}catch(x){}RECS=[];months();demoBar();go(tab);loadLive();};
   if(c)c.onclick=e=>{e.preventDefault();try{localStorage.removeItem(KEY)}catch(x){}seed=7;RECS=buildDemo();go(tab);};}
 function enter(){$('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#who').textContent='ผู้ตรวจ: '+REVIEWER;demoBar();go('ov');loadLive();}
-(function(){let v='';try{v=localStorage.getItem('endo_dash_reviewer')||''}catch(e){}const sel=$('#rvSel');
+(function(){let v='';try{v=localStorage.getItem('endo_dash_reviewer')||''}catch(e){}const q=new URLSearchParams(location.search).get('rv');if(q==='kosie')v='คุณโกสีห์ (KOSIE)';const sel=$('#rvSel');   // ?rv=kosie = ลิงก์จากแอป KOSIE เลือกชื่อให้
   if(v){if([...sel.options].some(o=>o.value===v))sel.value=v;else{sel.value='__other';$('#rvName').classList.remove('hidden');$('#rvName').value=v;}}
   sel.onchange=()=>{$('#rvName').classList.toggle('hidden',sel.value!=='__other');if(sel.value==='__other')$('#rvName').focus();};})();
 $('#pwGo').onclick=()=>{const sv=$('#rvSel').value,nm=(sv==='__other'?$('#rvName').value:sv).trim();if(!nm){$('#pwErr').textContent='ใส่ชื่อผู้ตรวจก่อนนะคะ';$('#rvName').focus();return;}REVIEWER=nm;try{localStorage.setItem('endo_dash_reviewer',nm)}catch(e){}
