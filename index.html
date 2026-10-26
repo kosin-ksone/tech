@@ -1155,6 +1155,15 @@ function syncBadge(){ var el=document.getElementById('syncInfo'); if(!el||!SYNC_
 if(SYNC_URL){ window.addEventListener('online',syncFlush); setInterval(syncFlush,60000); setTimeout(function(){ syBackfill(); syncFlush(); },1500); }
 var SY_APP='tech';
 function syBackfill(){ try{ if(localStorage.getItem('kosin_sync_bf1')) return; getReports().forEach(function(r){ syncPush({op:'upsert',rec:r,photos:{add:(r.thumbs||[]).filter(Boolean)}}); }); localStorage.setItem('kosin_sync_bf1','1'); }catch(e){} }
+/* ===== ย้ายรายงานจากแอปทดลองงานเดิม (ลิงก์ tech-trial · เครื่องเดียวกัน) มาแอปหลัก ครั้งเดียว ===== */
+function trialMerge(){ try{
+  if((window.APP_CONFIG||{}).TRIAL||localStorage.getItem('kosin_trial_merged')) return;
+  var old=JSON.parse(localStorage.getItem('kosintrial'+'_reports')||'[]'); if(!old.length){ localStorage.setItem('kosin_trial_merged','1'); return; }
+  var a=getReports(), ids={}; a.forEach(function(r){ ids[r.id]=1; }); var add=[];
+  old.forEach(function(r){ if(ids[r.id]) return; r.tech=String(r.tech||'').replace(/\s*\(ทดลองงาน\)\s*$/,''); a.push(r); add.push(r); });
+  saveReports(a); localStorage.setItem('kosin_trial_merged','1'); add.forEach(function(r){ syncPush({op:'upsert',rec:r,photos:{add:(r.thumbs||[]).filter(Boolean)}}); });
+}catch(e){} }
+trialMerge();
 var syStAt=0;   // ดึงผลตรวจจาก Dashboard มานับคะแนน
 function syncStatus(){ if(!SYNC_URL||!currentTech||Date.now()-syStAt<60000) return; syStAt=Date.now();
   fetch(SYNC_URL+'?op=status&app=tech&who='+encodeURIComponent(currentTech.name)).then(function(r){return r.json();}).then(function(j){ if(!j||!j.ok) return;
@@ -1286,7 +1295,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.6 · 26 ต.ค. 69';
+const APP_VER='v2.7 · 26 ต.ค. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
