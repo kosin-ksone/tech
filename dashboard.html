@@ -47,7 +47,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
 .wk table{table-layout:fixed}.wk th,.wk td{border:1px solid #333;font-size:12px;vertical-align:top}.wk td.det{font-size:12.5px;line-height:1.55}.wk .pics img{width:31%;margin:1%;border-radius:2px;aspect-ratio:1/1;object-fit:cover;vertical-align:top}.wk .pics .more{font-size:11px;color:#666}.wk .badge{font-size:10px;padding:2px 5px;white-space:normal}
 .hidden{display:none!important}
 @media(max-width:640px){.rec{grid-template-columns:1fr}.rec .act{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap}.reason{text-align:left}}
-.wk td{cursor:zoom-in}.wk td:hover{background:#FFF8D6;outline:2px solid #E0A800;outline-offset:-2px}.wkz{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}.wkz>div{background:#fff;border-radius:14px;padding:20px 22px;max-width:760px;width:100%;max-height:85vh;overflow:auto;font-size:19px;line-height:1.7;box-shadow:0 10px 30px rgba(0,0,0,.3)}.wkz .h{font-size:13px;color:#777;margin-bottom:6px}.wkz img{max-width:100%;max-height:78vh;display:block;margin:0 auto}@media print{.wk td:hover{background:none;outline:0}}@page{size:A4;margin:10mm}@media print{.top,.tabs,.demo,.filters,.noprint{display:none!important}.box{border:0}}
+.wk td{cursor:zoom-in}.wk td:hover{background:#FFF8D6;outline:2px solid #E0A800;outline-offset:-2px}.wkz{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}.wkz>div{background:#fff;border-radius:14px;padding:20px 22px;max-width:760px;width:100%;max-height:85vh;overflow:auto;font-size:19px;line-height:1.7;box-shadow:0 10px 30px rgba(0,0,0,.3)}.wkz .h{font-size:13px;color:#777;margin-bottom:6px}.wkz img{max-width:100%;max-height:78vh;display:block;margin:0 auto}@media print{.wk td:hover{background:none;outline:0}}.kpn{margin-top:6px}.kpn>div{font-size:13px;line-height:1.5;padding:6px 9px;border-radius:8px;margin:4px 0}.kpn .ks{background:#EEF4FF;border:1px solid #C7D7F5}.kpn .st{background:#F1F8EE;border:1px solid #CFE6C4}.kpn span{color:#888;font-size:11px}.kpz{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}.kpz>div{background:#fff;border-radius:14px;padding:18px;max-width:480px;width:100%}.kpz textarea{width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:10px;padding:10px;font:inherit;font-size:15px}@media print{.kpn button{display:none}}.kpw{margin:6px 0 2px;padding:6px 9px;border-radius:8px;background:#FFF1F0;border:1px solid #F5B5AE;color:#B42318;font-size:12px;line-height:1.5}.wk .kpw{font-size:10.5px;padding:3px 5px}@page{size:A4;margin:10mm}@media print{.top,.tabs,.demo,.filters,.noprint{display:none!important}.box{border:0}}
 </style></head><body>
 
 <div id="login" class="login">
@@ -65,7 +65,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
     <img src="endo-logo.png" alt="ENDO">
     <div class="t">Dashboard ตรวจรายงานช่าง<small>คะแนน · ค่าจุด · รายงานรายสัปดาห์</small></div>
     <div class="sp"></div>
-    <select id="selMonth"></select>
+    <button class="btn" id="kpBell" style="display:none;position:relative;font-size:18px" onclick="kpBellOpen()">🔔</button><select id="selMonth"></select>
     <span id="who" style="font-size:12.5px;color:var(--brand);font-weight:700"></span>
     <button class="btn" id="logout">ออก</button>
   </div>
@@ -118,6 +118,32 @@ function buildDemo(){
 }
 const SKEY='endo_dash_sample';
 function sampleOn(){try{return localStorage.getItem(SKEY)==='1'}catch(e){return false}}
+/* แจ้งความผิดปกติให้ KOSIE (เห็นเฉพาะเปิดจาก KOPASS · แค่แจ้ง ไม่ตัดคะแนน) */
+let KP=(()=>{try{return new URLSearchParams(location.search).has('kosie')||sessionStorage.getItem('kp')==='1'||(window.top!==window&&/googleusercontent|script\.google/.test(document.referrer))}catch(e){return false}})();
+try{if(KP)sessionStorage.setItem('kp','1')}catch(e){}
+function mkWarn(o,day){const w=[];(o.dupPh||[]).forEach(q=>w.push('📷 มีรูปส่งซ้ำ — รูปเดียวกับรายงาน '+thD(q.d)+' · '+q.h+' ('+q.w+')'));
+  const ds=(o.photoDates&&o.photoDates.length?o.photoDates:(o.photoMeta||[]).map(m=>m.taken)).filter(d=>d&&d!==day);
+  if(ds.length)w.push('📅 วันที่ถ่ายรูป ('+[...new Set(ds)].map(thD).join(', ')+') ไม่ตรงวันรายงาน');
+  else if([].concat(o.flags||[]).join(',').indexOf('รูปเก่า')>=0)w.push('📅 รูปถ่ายไว้ก่อนวันส่งรายงาน');
+  return w;}
+const APP_ID='tech',WHO_LBL='ช่าง';
+function kpNotes(r){if(!KP)return '';const n=r.notes||[];return '<div class="kpn">'+n.map(x=>'<div class="'+(x.from==='staff'?'st':'ks')+'"><b>'+(x.from==='staff'?'↩ '+esc(x.by||'ตอบ'):'💬 KOSIE')+'</b> <span>'+esc(new Date(x.at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+'</span><br>'+esc(x.t)+'</div>').join('')+'<button class="btn" data-note="'+esc(r.id)+'">💬 ถาม / แจ้ง'+WHO_LBL+'</button></div>';}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-note]');if(!b)return;const r=RECS.find(x=>x.id===b.dataset.note);if(!r)return;
+  const o=document.createElement('div');o.className='kpz';o.innerHTML='<div><b>💬 ถาม / แจ้ง'+WHO_LBL+'</b><div style="font-size:12.5px;color:#666;margin:4px 0 8px">'+esc(r.hospital)+' · ข้อความขึ้นเป็นกระดิ่ง 🔔 ในแอป (ไม่ส่งอีเมล)</div><textarea rows="4" placeholder="พิมพ์คำถามหรือสิ่งที่อยากแจ้ง"></textarea><div style="text-align:right;margin-top:8px"><button class="btn" data-x>ยกเลิก</button> <button class="btn pri" data-s>ส่ง</button></div></div>';
+  document.body.appendChild(o);const ta=o.querySelector('textarea');ta.focus();o.querySelector('[data-x]').onclick=()=>o.remove();
+  o.querySelector('[data-s]').onclick=()=>{const t=ta.value.trim();if(!t)return;const sb=o.querySelector('[data-s]');sb.disabled=true;sb.textContent='กำลังส่ง…';
+    fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:APP_ID,op:'note',id:r.id,text:t,by:'คุณโกสีห์ (KOSIE)',from:'kosie'})}).then(x=>x.json()).then(j=>{if(!j.ok)throw 0;r.notes=j.notes;o.remove();go(tab);}).catch(()=>{sb.disabled=false;sb.textContent='ส่ง';alert('ส่งไม่สำเร็จ ลองอีกครั้ง');});};});
+function kpBellPaint(){const b=document.getElementById('kpBell');if(!b)return;if(!KP){b.style.display='none';return;}let s='';try{s=localStorage.getItem('kp_seen_'+APP_ID)||''}catch(e){}
+  const rs=[];RECS.forEach(r=>(r.notes||[]).forEach(n=>{if(n.from==='staff')rs.push({r:r,n:n});}));const c=rs.filter(x=>x.n.at>s).length;
+  b.style.display=RECS.some(r=>(r.notes||[]).length)?'':'none';b.innerHTML='🔔'+(c?'<i style="position:absolute;top:-6px;right:-6px;background:#E53935;color:#fff;font-style:normal;font-size:11px;font-weight:700;border-radius:10px;padding:1px 6px">'+c+'</i>':'');}
+function kpBellOpen(){let s='';try{s=localStorage.getItem('kp_seen_'+APP_ID)||''}catch(e){}const rs=[];RECS.forEach(r=>{const n=r.notes||[];if(n.length)rs.push({r:r,last:n[n.length-1]});});rs.sort((a,b)=>a.last.at<b.last.at?1:-1);
+  let mx=s;rs.forEach(x=>(x.r.notes||[]).forEach(n=>{if(n.at>mx)mx=n.at;}));try{localStorage.setItem('kp_seen_'+APP_ID,mx)}catch(e){}
+  const o=document.createElement('div');o.className='kpz';o.innerHTML='<div style="max-height:85vh;overflow:auto"><div style="display:flex;align-items:center;margin-bottom:8px"><b style="flex:1;font-size:17px">🔔 คำถามของ KOSIE และคำตอบ</b><button class="btn" data-x>✕</button></div>'+
+    (rs.length?rs.map((x,i)=>{const r=x.r,nw=(r.notes||[]).some(n=>n.from==='staff'&&n.at>s);return '<div class="kpbi" data-i="'+i+'" style="border:1px solid '+(nw?'#E53935':'#ddd')+';border-radius:10px;padding:9px;margin-bottom:8px;cursor:pointer"><b>'+esc(r.tech)+'</b> · '+thD(r.dateKey)+' · '+esc(r.hospital)+(nw?' <span style="color:#E53935;font-weight:700">● ตอบใหม่</span>':(x.last.from==='staff'?' <span style="color:#2E7D32">ตอบแล้ว</span>':' <span style="color:#B7791F">รอตอบ</span>'))+'<div style="font-size:13px;color:#444;margin-top:4px">'+(x.last.from==='staff'?'↩ ':'💬 KOSIE: ')+esc(x.last.t)+'</div></div>';}).join(''):'<div style="color:#888;padding:16px;text-align:center">ยังไม่มีคำถาม</div>')+
+    '<div style="font-size:12px;color:#888">แตะรายการเพื่อเปิดรายงานนั้น</div></div>';
+  document.body.appendChild(o);kpBellPaint();o.querySelector('[data-x]').onclick=()=>o.remove();o.onclick=e=>{if(e.target===o)o.remove();};
+  o.querySelectorAll('.kpbi').forEach(el=>el.onclick=()=>{const r=rs[+el.dataset.i].r;o.remove();fTech=r.tech;fStat='ทั้งหมด';if(month!==r.dateKey.slice(0,7)){month=r.dateKey.slice(0,7);const sm=document.getElementById('selMonth');if(sm)sm.value=month;}go('rv');setTimeout(()=>{const b=document.querySelector('[data-note="'+r.id+'"]');if(b)b.scrollIntoView({block:'center'});},300);});}
+function kpWarn(r){return KP&&r.warn&&r.warn.length?'<div class="kpw">⚠️ แจ้ง KOSIE<br>'+r.warn.map(esc).join('<br>')+'</div>':'';}
 let RECS=sampleOn()?buildDemo():[];
 function loadRev(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return{}}}
 function saveRev(m){try{localStorage.setItem(KEY,JSON.stringify(m))}catch(e){}}
@@ -158,7 +184,7 @@ function vReview(){
 '<span style="color:var(--mut);font-size:12px">'+list.length+' งาน</span></div>';
   h+='<div class="note">คะแนน และ ค่าจุด <b>นับอัตโนมัติ</b> ทุกงานที่ช่างส่ง ไม่ต้องมีคนตรวจ · ถ้าเจองานผิด กด ⛔ ไม่นับ ได้ (ไม่บังคับ)</div>';
   list.slice(0,150).forEach(r=>{const t=TECHS.find(x=>x.name===r.tech)||{name:r.tech||'-'};
-    h+='<div class="rec"><div><div class="h">📍 '+esc(r.hospital)+' '+badge(r.status)+(r.lateDays?' <span class="badge b-late">ส่งสาย '+r.lateDays+' วัน</span>':'')+'</div><div class="m">'+thD(r.dateKey)+' · '+esc(nick(t))+' ('+esc(r.tech)+')</div>'+
+    h+='<div class="rec"><div><div class="h">📍 '+esc(r.hospital)+' '+badge(r.status)+(r.lateDays?' <span class="badge b-late">ส่งสาย '+r.lateDays+' วัน</span>':'')+'</div><div class="m">'+thD(r.dateKey)+' · '+esc(nick(t))+' ('+esc(r.tech)+')</div>'+kpWarn(r)+kpNotes(r)+
       '<div class="d"><b>'+r.code+'</b> '+esc(r.label)+'</div>'+(r.desc?'<div class="d" style="color:#555">'+esc(r.desc)+'</div>':'')+(r.note?'<div class="p">⚠ '+esc(r.note)+'</div>':'')+
       '<div class="ph">'+r.photos.map(p=>'<img loading="lazy" referrerpolicy="no-referrer" src="'+p+'">').join('')+'</div></div>'+
       '<div class="act"><div class="pts">'+r.pt+' <small>คะแนน</small></div>'+
@@ -246,7 +272,7 @@ function vWeek(){
   days.forEach(k=>{const it=RECS.filter(r=>r.tech===wkTech&&r.dateKey===k);const dn='วัน'+DOWF[kd(k).getDay()]+'ที่<br>'+thD(k).split(' ').slice(1).join(' ');
     if(!it.length){h+='<tr><td>'+dn+'</td><td colspan="6" style="text-align:center;color:#888">'+([0,6].indexOf(kd(k).getDay())>=0?'วันหยุด':'-')+'</td></tr>';return;}
     const g={},o=[];it.slice().sort((a,b)=>visitKey(a).localeCompare(visitKey(b))||String(a.ts||'').localeCompare(String(b.ts||''))).forEach(r=>{const l=o[o.length-1];if(l!==undefined&&g[l].hos===r.hospital)g[l].push(r);else{const k=o.length;g[k]=[r];g[k].hos=r.hospital;o.push(k);}});   // ไปที่เดิมซ้ำ = แถวใหม่
-    o.forEach((gk,gi)=>{const x=g[gk],hn=x.hos;h+='<tr>'+(gi?'':'<td rowspan="'+o.length+'">'+dn+'</td>')+'<td><b>'+esc(hn)+'</b></td><td>'+x.map(r=>esc(r.code+' '+String(r.label||'').split(' — ')[0])).join('<br>')+'</td><td class="det">'+(x.map(r=>r.desc?'- '+esc(r.desc):'').filter(Boolean).join('<br>')||'-')+'</td><td>'+(x.map(r=>r.note?'- '+esc(r.note):'').filter(Boolean).join('<br>')||'-')+'</td><td>'+x.map(r=>badge(r.status)+(r.by?'<div style="font-size:10.5px;color:#777">'+esc(r.by)+'</div>':'')).join('<br>')+'</td><td class="pics">'+(ps=>ps.slice(0,6).map(p=>'<img loading="lazy" referrerpolicy="no-referrer" src="'+p+'">').join('')+(ps.length>6?'<div class="more">+'+(ps.length-6)+' รูป</div>':''))(x.reduce((a,r)=>a.concat(r.photos||[]),[]))+'</td></tr>';});});
+    o.forEach((gk,gi)=>{const x=g[gk],hn=x.hos;h+='<tr>'+(gi?'':'<td rowspan="'+o.length+'">'+dn+'</td>')+'<td><b>'+esc(hn)+'</b>'+x.map(kpWarn).join('')+'</td><td>'+x.map(r=>esc(r.code+' '+String(r.label||'').split(' — ')[0])).join('<br>')+'</td><td class="det">'+(x.map(r=>r.desc?'- '+esc(r.desc):'').filter(Boolean).join('<br>')||'-')+'</td><td>'+(x.map(r=>r.note?'- '+esc(r.note):'').filter(Boolean).join('<br>')||'-')+'</td><td>'+x.map(r=>badge(r.status)+(r.by?'<div style="font-size:10.5px;color:#777">'+esc(r.by)+'</div>':'')).join('<br>')+'</td><td class="pics">'+(ps=>ps.slice(0,6).map(p=>'<img loading="lazy" referrerpolicy="no-referrer" src="'+p+'">').join('')+(ps.length>6?'<div class="more">+'+(ps.length-6)+' รูป</div>':''))(x.reduce((a,r)=>a.concat(r.photos||[]),[]))+'</td></tr>';});});
   $('#view').innerHTML=h+'</table></div>';
   wkZoom();$('#wTech').onchange=e=>{wkTech=e.target.value;vWeek();};$('#wPrev').onclick=()=>{wkStart=addD(wkStart,-7);vWeek();};$('#wNext').onclick=()=>{wkStart=addD(wkStart,7);vWeek();};
 }
@@ -263,7 +289,7 @@ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(b.dataset
 $('#logout').onclick=()=>{try{sessionStorage.removeItem('endo_dash')}catch(e){}location.reload();};
 const SYNC_URL=(window.APP_CONFIG&&window.APP_CONFIG.SYNC_URL)||'';let LIVE=false,liveAt=null;
 function loadLive(){if(!SYNC_URL||sampleOn())return;LIVE=false;demoBar();const n=new Date(),from=dk(new Date(n.getFullYear(),n.getMonth()-11,1));
-  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,ts:o.ts||o.savedAt}));LIVE=true;liveAt=new Date();months();demoBar();go(tab);})
+  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,ts:o.ts||o.savedAt,warn:mkWarn(o,o.dateKey),notes:o.notes||[]}));LIVE=true;kpBellPaint();liveAt=new Date();months();demoBar();go(tab);})
   .catch(()=>{$('#demoBar').innerHTML='⚠️ โหลดรายงานไม่สำเร็จ (เน็ต/ระบบ) · <a href="#" onclick="loadLive();return false">ลองใหม่</a>';});}
 const liveBar=()=>LIVE?'🟢 รายงานจริงจากแอปช่าง '+RECS.length+' รายการ · อัปเดต '+String(liveAt.getHours()).padStart(2,'0')+':'+String(liveAt.getMinutes()).padStart(2,'0')+' · <a href="#" onclick="loadLive();return false">โหลดใหม่</a> · <a href="#" id="sampleOn">ดูข้อมูลตัวอย่าง</a>'
   :'⏳ กำลังโหลดรายงานจากแอปช่าง...';
@@ -284,7 +310,7 @@ $('#pw').onkeydown=e=>{if(e.key==='Enter')$('#pwGo').click();};
 const KOSIE_H='d935041312d7ea4e6ecc8482eb389194ebfc551fbcef84725f4b80f9257f0dd1';
 (async()=>{try{const t=new URLSearchParams(location.search).get('kosie');
   if(t&&crypto.subtle){const h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,'0')).join('');
-    if(h===KOSIE_H){REVIEWER='คุณโกสีห์ (KOSIE)';try{sessionStorage.setItem('endo_dash','1')}catch(e){}enter();return;}}
+    if(h===KOSIE_H){REVIEWER='คุณโกสีห์ (KOSIE)';KP=true;try{sessionStorage.setItem('endo_dash','1');sessionStorage.setItem('kp','1')}catch(e){}enter();return;}}
   if(sessionStorage.getItem('endo_dash')==='1')enter();}catch(e){}})();
 </script>
 </body></html>
