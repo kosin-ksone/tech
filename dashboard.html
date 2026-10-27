@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="th"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard ENDO · ตรวจรายงานช่าง</title>
+<title>Dashboard ENDO · รายงานช่าง</title>
 <link rel="icon" href="favicon-32.png">
 <style>
 :root{--brand:#6B4430;--brand2:#8A5A3C;--gold:#E0B44C;--gold-bg:#FBF1DC;--bg:#FAF6F1;--card:#fff;--line:#E8DED3;--txt:#2B211B;--mut:#8A7B70;
@@ -71,7 +71,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
   </div>
   <div class="demo" id="demoBar"></div>
   <div class="tabs" id="tabs">
-    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">✅ ตรวจรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด กทม.+ปริมณฑล</button><button data-t="pl">📅 แพลนช่าง</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
+    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">📋 ดูรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด กทม.+ปริมณฑล</button><button data-t="pl">📅 แพลนช่าง</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
   </div>
   <div class="wrap" id="view"></div>
 </div>
@@ -127,44 +127,43 @@ const fmtAt=a=>{if(!a)return '';const d=new Date(a);return d.getDate()+' '+MON[d
 const byLine=r=>r.by?'<div class="m" style="text-align:right">ตรวจโดย <b>'+esc(r.by)+'</b>'+(r.at?' · '+fmtAt(r.at):'')+'</div>':'';
 applyRev();
 // ===== state =====
-let tab='ov', month=TODAY.slice(0,7), fTech='', fStat='รอตรวจ', wkTech=TECHS[0]&&TECHS[0].name, wkStart=monOf(TODAY);
+let tab='ov', month=TODAY.slice(0,7), fTech='', fStat='ทั้งหมด', wkTech=TECHS[0]&&TECHS[0].name, wkStart=monOf(TODAY);
 const inMonth=r=>r.dateKey.slice(0,7)===month;
-function badge(s){return '<span class="badge '+({'รอตรวจ':'b-wait','ผ่าน':'b-ok','ไม่ผ่าน':'b-no','รอเอกสาร':'b-doc'}[s])+'">'+s+'</span>';}
+function badge(s){return '<span class="badge '+({'รอตรวจ':'b-wait','ผ่าน':'b-ok','ไม่ผ่าน':'b-no','รอเอกสาร':'b-doc'}[s])+'">'+({'ผ่าน':'นับคะแนน','ไม่ผ่าน':'ไม่นับ'}[s]||s)+'</span>';}
 function techOpts(sel,all){return (all?'<option value="">ช่างทุกคน</option>':'')+'<optgroup label="กทม./ปริมณฑล">'+TECHS.filter(isBkk).map(t=>'<option value="'+esc(t.name)+'"'+(t.name===sel?' selected':'')+'>'+esc(t.name)+' ('+esc(nick(t))+')</option>').join('')+'</optgroup><optgroup label="ต่างจังหวัด">'+TECHS.filter(t=>!isBkk(t)).map(t=>'<option value="'+esc(t.name)+'"'+(t.name===sel?' selected':'')+'>'+esc(t.name)+' ('+esc(nick(t))+')</option>').join('')+'</optgroup>';}
-// ค่าจุด: นับ 1 จุด ต่อ ช่าง+วัน+รพ. ที่มีงานผ่านตรวจ · เฉพาะช่าง กทม. และ รพ. ใน กทม.(75)/ปริมณฑล(100)
+// ค่าจุด: นับ 1 จุด ต่อ ช่าง+วัน+รพ. ที่มีงาน (นับอัตโนมัติ ยกเว้น ไม่นับ) · เฉพาะช่าง กทม. และ รพ. ใน กทม.(75)/ปริมณฑล(100)
 function pointRows(name){const g={};RECS.filter(r=>r.tech===name&&inMonth(r)&&r.status==='ผ่าน').forEach(r=>{const k=r.dateKey+'|'+r.hospital;if(!g[k]){const rt=rateOf(r.hospital);if(rt)g[k]={dateKey:r.dateKey,hospital:r.hospital,rate:rt};}});return Object.values(g).sort((a,b)=>a.dateKey<b.dateKey?-1:1);}
 // ===== views =====
 function vOverview(){
   const m=RECS.filter(inMonth),wait=m.filter(r=>r.status==='รอตรวจ'||r.status==='รอเอกสาร').length,ok=m.filter(r=>r.status==='ผ่าน'),no=m.filter(r=>r.status==='ไม่ผ่าน').length;
   const pts=ok.reduce((a,r)=>a+r.pt,0),money=TECHS.filter(isBkk).reduce((a,t)=>a+pointRows(t.name).reduce((b,x)=>b+x.rate,0),0);
   const ws=monOf(TODAY),days=Array.from({length:7},(_,i)=>addD(ws,i));
-  let h='<div class="cards"><div class="kpi"><div class="l">รอตรวจ</div><div class="v" style="color:var(--wait)">'+wait+'</div><div class="s">งาน · แตะแท็บ ตรวจรายงาน</div></div>'+
-    '<div class="kpi"><div class="l">ผ่านแล้ว (เดือนนี้)</div><div class="v" style="color:var(--ok)">'+ok.length+'</div><div class="s">ไม่ผ่าน '+no+' งาน</div></div>'+
-    '<div class="kpi"><div class="l">คะแนนรวม (ผ่านแล้ว)</div><div class="v">'+pts.toLocaleString()+'</div><div class="s">ช่าง '+TECHS.length+' คน</div></div>'+
-    '<div class="kpi"><div class="l">ค่าจุด กทม.+ปริมณฑล</div><div class="v">฿'+money.toLocaleString()+'</div><div class="s">นับเฉพาะงานที่ผ่านตรวจ</div></div></div>';
-  h+='<div class="box"><h3>ส่งรายงานสัปดาห์นี้ ('+thD(days[0])+' – '+thD(days[6])+')</h3><table><tr><th>ช่าง</th>'+days.map(k=>'<th class="n">'+thD(k).split(' ').slice(0,2).join(' ')+'</th>').join('')+'<th class="n">รอตรวจ</th><th class="n">คะแนน<br><span style="font-weight:400;font-size:11px">ผ่านแล้ว · '+MON[+month.slice(5)-1]+'</span></th><th class="n">ค่าจุด<br><span style="font-weight:400;font-size:11px">'+MON[+month.slice(5)-1]+'</span></th></tr>';
+  let h='<div class="cards"><div class="kpi"><div class="l">รายงาน (เดือนนี้)</div><div class="v" style="color:var(--ok)">'+m.length+'</div><div class="s">งาน · คะแนนนับอัตโนมัติ</div></div>'+
+    '<div class="kpi"><div class="l">นับคะแนน</div><div class="v" style="color:var(--ok)">'+ok.length+'</div><div class="s">ไม่นับ '+no+' งาน</div></div>'+
+    '<div class="kpi"><div class="l">คะแนนรวม</div><div class="v">'+pts.toLocaleString()+'</div><div class="s">ช่าง '+TECHS.length+' คน</div></div>'+
+    '<div class="kpi"><div class="l">ค่าจุด กทม.+ปริมณฑล</div><div class="v">฿'+money.toLocaleString()+'</div><div class="s">นับอัตโนมัติ</div></div></div>';
+  h+='<div class="box"><h3>ส่งรายงานสัปดาห์นี้ ('+thD(days[0])+' – '+thD(days[6])+')</h3><table><tr><th>ช่าง</th>'+days.map(k=>'<th class="n">'+thD(k).split(' ').slice(0,2).join(' ')+'</th>').join('')+'<th class="n">คะแนน<br><span style="font-weight:400;font-size:11px">'+MON[+month.slice(5)-1]+'</span></th><th class="n">ค่าจุด<br><span style="font-weight:400;font-size:11px">'+MON[+month.slice(5)-1]+'</span></th></tr>';
   TECHS.forEach(t=>{h+='<tr class="click" data-tech="'+esc(t.name)+'"><td><b>'+esc(nick(t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(t.name)+'</span></td>'+days.map(k=>{const n=RECS.filter(r=>r.tech===t.name&&r.dateKey===k).length,dd=kd(k).getDay();
       return '<td class="n">'+(k>TODAY?'':(n?'<span class="chip '+(RECS.some(r=>r.tech===t.name&&r.dateKey===k&&r.lateDays)?'c-late':'c-ok')+'">'+n+'</span>':(dd===0||dd===6?'<span class="chip c-no">หยุด</span>':'<span class="chip c-off">–</span>')))+'</td>';}).join('')+
-    '<td class="n">'+(RECS.filter(r=>r.tech===t.name&&(r.status==='รอตรวจ'||r.status==='รอเอกสาร')).length||'')+'</td>'+
     (()=>{const tp=m.filter(r=>r.tech===t.name&&r.status==='ผ่าน').reduce((a,r)=>a+r.pt,0),tm=isBkk(t)?pointRows(t.name).reduce((a,x)=>a+x.rate,0):null;
       return '<td class="n"><b>'+(tp||'')+'</b></td><td class="n">'+(tm===null?'<span style="color:var(--mut);font-size:11px">ตจว.</span>':(tm?'฿'+tm.toLocaleString():''))+'</td>';})()+'</tr>';});
-  h+='</table><div style="font-size:11.5px;color:var(--mut);margin-top:6px">ตัวเลข = จำนวนงานที่ส่ง · – = ไม่มีรายงาน · คะแนน/ค่าจุด = เดือนที่เลือก นับเฉพาะงานที่ผ่านตรวจ (ค่าจุดเฉพาะช่าง กทม.+ปริมณฑล) · แตะชื่อช่างเพื่อตรวจงานของคนนั้น</div></div>';
+  h+='</table><div style="font-size:11.5px;color:var(--mut);margin-top:6px">ตัวเลข = จำนวนงานที่ส่ง · – = ไม่มีรายงาน · คะแนน/ค่าจุด = เดือนที่เลือก นับอัตโนมัติทุกงานที่ส่ง (ยกเว้นที่กด ไม่นับ · ค่าจุดเฉพาะช่าง กทม.+ปริมณฑล) · แตะชื่อช่างเพื่อดูงานของคนนั้น</div></div>';
   $('#view').innerHTML=h;
-  document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='รอตรวจ';go('rv');});
+  document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='ทั้งหมด';go('rv');});
 }
 function vReview(){
   let list=RECS.filter(inMonth).filter(r=>!fTech||r.tech===fTech).filter(r=>fStat==='ทั้งหมด'||r.status===fStat||(fStat==='รอตรวจ'&&r.status==='รอเอกสาร'));
   list.sort((a,b)=>a.dateKey<b.dateKey?1:a.dateKey>b.dateKey?-1:(a.tech<b.tech?-1:1));
-  let h='<div class="filters"><select id="fTech">'+techOpts(fTech,true)+'</select><div class="seg" id="fStat">'+['รอตรวจ','ผ่าน','ไม่ผ่าน','ทั้งหมด'].map(s=>'<button class="'+(s===fStat?'on':'')+'" data-s="'+s+'">'+s+'</button>').join('')+'</div>'+
-    (fStat==='รอตรวจ'&&list.length?'<button class="btn ok" id="okAll">✅ ผ่านทั้งหมดที่แสดง ('+list.filter(r=>r.status==='รอตรวจ').length+')</button>':'')+'<span style="color:var(--mut);font-size:12px">'+list.length+' งาน</span></div>';
-  h+='<div class="note">คะแนน และ ค่าจุด นับเฉพาะงานที่ <b>ผ่าน</b> · ไม่ผ่าน = ไม่นับ (ช่างเห็นเหตุผลในแอป — เมื่อต่อระบบจริง)</div>';
+  let h='<div class="filters"><select id="fTech">'+techOpts(fTech,true)+'</select><div class="seg" id="fStat">'+['ทั้งหมด','ไม่ผ่าน'].map(s=>'<button class="'+(s===fStat?'on':'')+'" data-s="'+s+'">'+(s==='ไม่ผ่าน'?'ไม่นับ':s)+'</button>').join('')+'</div>'+
+'<span style="color:var(--mut);font-size:12px">'+list.length+' งาน</span></div>';
+  h+='<div class="note">คะแนน และ ค่าจุด <b>นับอัตโนมัติ</b> ทุกงานที่ช่างส่ง ไม่ต้องมีคนตรวจ · ถ้าเจองานผิด กด ⛔ ไม่นับ ได้ (ไม่บังคับ)</div>';
   list.slice(0,150).forEach(r=>{const t=TECHS.find(x=>x.name===r.tech)||{name:r.tech||'-'};
     h+='<div class="rec"><div><div class="h">📍 '+esc(r.hospital)+' '+badge(r.status)+(r.lateDays?' <span class="badge b-late">ส่งสาย '+r.lateDays+' วัน</span>':'')+'</div><div class="m">'+thD(r.dateKey)+' · '+esc(nick(t))+' ('+esc(r.tech)+')</div>'+
       '<div class="d"><b>'+r.code+'</b> '+esc(r.label)+'</div>'+(r.desc?'<div class="d" style="color:#555">'+esc(r.desc)+'</div>':'')+(r.note?'<div class="p">⚠ '+esc(r.note)+'</div>':'')+
       '<div class="ph">'+r.photos.map(p=>'<img loading="lazy" referrerpolicy="no-referrer" src="'+p+'">').join('')+'</div></div>'+
       '<div class="act"><div class="pts">'+r.pt+' <small>คะแนน</small></div>'+
-      (r.status==='ผ่าน'||r.status==='ไม่ผ่าน'?byLine(r)+(r.reason?'<div class="reason">เหตุผล: '+esc(r.reason)+'</div>':'')+'<button class="btn" data-undo="'+esc(r.id)+'">↩ ย้อนเป็นรอตรวจ</button>':
-        '<button class="btn ok" data-ok="'+esc(r.id)+'">✅ ผ่าน</button><button class="btn no" data-no="'+esc(r.id)+'">⛔ ไม่ผ่าน</button>')+'</div></div>';});
+      (r.status==='ไม่ผ่าน'?byLine(r)+(r.reason?'<div class="reason">เหตุผล: '+esc(r.reason)+'</div>':'')+'<button class="btn ok" data-ok="'+esc(r.id)+'">↩ นับคะแนนคืน</button>':
+        (r.by&&r.by!=='อัตโนมัติ'?byLine(r):'')+'<button class="btn no" data-no="'+esc(r.id)+'">⛔ ไม่นับ</button>')+'</div></div>';});
   if(list.length>150)h+='<div style="text-align:center;color:var(--mut)">แสดง 150 รายการแรก — เลือกช่างเพื่อดูเฉพาะคน</div>';
   if(!list.length)h+='<div class="box" style="text-align:center;color:var(--mut)">ไม่มีงานในหมวดนี้ 🎉</div>';
   $('#view').innerHTML=h;
@@ -172,7 +171,7 @@ function vReview(){
   document.querySelectorAll('#fStat button').forEach(b=>b.onclick=()=>{fStat=b.dataset.s;vReview();});
   const set=(id,s,reason)=>{const at=new Date().toISOString(),m=loadRev();m[id]={s:s,r:reason||'',by:REVIEWER,at:at};saveRev(m);const r=RECS.find(x=>x.id===id);r.status=s;r.reason=reason||'';r.by=REVIEWER;r.at=at;postRev(id,s,reason);};
   document.querySelectorAll('[data-ok]').forEach(b=>b.onclick=()=>{set(b.dataset.ok,'ผ่าน');vReview();count();});
-  document.querySelectorAll('[data-no]').forEach(b=>b.onclick=()=>{const box=b.parentNode;box.innerHTML='<select class="btn" style="font-weight:400">'+['รูปไม่ตรงงาน','ไม่มีใบเซ็นลูกค้า','ซ้ำกับวันก่อน','รายละเอียดไม่พอ','อื่นๆ'].map(x=>'<option>'+x+'</option>').join('')+'</select><button class="btn no">ยืนยัน ไม่ผ่าน</button><button class="btn">ยกเลิก</button>';
+  document.querySelectorAll('[data-no]').forEach(b=>b.onclick=()=>{const box=b.parentNode;box.innerHTML='<select class="btn" style="font-weight:400">'+['รูปไม่ตรงงาน','ไม่มีใบเซ็นลูกค้า','ซ้ำกับวันก่อน','รายละเอียดไม่พอ','อื่นๆ'].map(x=>'<option>'+x+'</option>').join('')+'</select><button class="btn no">ยืนยัน ไม่นับ</button><button class="btn">ยกเลิก</button>';
     const [sel,yes,cancel]=box.children;yes.onclick=()=>{set(b.dataset.no,'ไม่ผ่าน',sel.value);vReview();count();};cancel.onclick=vReview;});
   document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>{const m=loadRev();m[b.dataset.undo]={s:'รอตรวจ'};saveRev(m);postRev(b.dataset.undo,'รอตรวจ','');const r=RECS.find(x=>x.id===b.dataset.undo);r.status='รอตรวจ';r.reason='';r.by='';r.at='';vReview();count();});
   const oa=$('#okAll');if(oa)oa.onclick=()=>{list.filter(r=>r.status==='รอตรวจ').forEach(r=>set(r.id,'ผ่าน'));vReview();count();};
@@ -220,8 +219,8 @@ function vScore(){
     return {t:t,pts:ok.reduce((a,r)=>a+r.pt,0),nOk:ok.length,wait:m.filter(r=>r.status==='รอตรวจ'||r.status==='รอเอกสาร').reduce((a,r)=>a+r.pt,0),no:m.filter(r=>r.status==='ไม่ผ่าน').length,k1:m.filter(r=>r.code==='K1').length,
       grp:ok.reduce((a,r)=>{a[r.code[0]]=(a[r.code[0]]||0)+r.pt;return a;},{})};}).sort((a,b)=>b.pts-a.pts);
   const max=Math.max(1,...rows.map(r=>r.pts));
-  let h='<div class="note">คะแนนเดือน '+MONF[+month.slice(5)-1]+' '+(+month.slice(0,4)+543)+' · นับเฉพาะงานที่ผ่านตรวจ · "รอตรวจ" = คะแนนที่จะได้ถ้าผ่าน</div><div class="box"><table><tr><th>#</th><th>ช่าง</th><th>เขต</th><th class="n">คะแนน</th><th></th><th class="n">งานผ่าน</th><th class="n">ไม่ผ่าน</th><th class="n">รอตรวจ (คะแนน)</th><th class="n">งานไม่มีคะแนน<br><span style="font-weight:400;font-size:11px">(งานอื่นๆ K1)</span></th><th>แยกกลุ่ม (A–K)</th></tr>';
-  rows.forEach((r,i)=>{h+='<tr class="click" data-tech="'+esc(r.t.name)+'"><td>'+(i+1)+'</td><td><b>'+esc(nick(r.t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(r.t.name)+'</span></td><td>'+(isBkk(r.t)?'กทม.':'ตจว.')+'</td><td class="n"><b>'+r.pts+'</b></td><td style="width:18%"><div class="bar"><i style="width:'+(r.pts/max*100)+'%"></i></div></td><td class="n">'+r.nOk+'</td><td class="n">'+(r.no||'')+'</td><td class="n">'+(r.wait||'')+'</td><td class="n">'+(r.k1?'<a href="#" data-k1="1" style="font-weight:700;color:var(--brand)">'+r.k1+' งาน</a>':'')+'</td><td style="font-size:12px;color:#555">'+Object.keys(r.grp).sort().map(g=>g+' '+r.grp[g]).join(' · ')+'</td></tr>';});
+  let h='<div class="note">คะแนนเดือน '+MONF[+month.slice(5)-1]+' '+(+month.slice(0,4)+543)+' · นับอัตโนมัติทุกงานที่ส่ง (ยกเว้นที่กด ไม่นับ)</div><div class="box"><table><tr><th>#</th><th>ช่าง</th><th>เขต</th><th class="n">คะแนน</th><th></th><th class="n">งานที่นับ</th><th class="n">ไม่นับ</th><th class="n">งานไม่มีคะแนน<br><span style="font-weight:400;font-size:11px">(งานอื่นๆ K1)</span></th><th>แยกกลุ่ม (A–K)</th></tr>';
+  rows.forEach((r,i)=>{h+='<tr class="click" data-tech="'+esc(r.t.name)+'"><td>'+(i+1)+'</td><td><b>'+esc(nick(r.t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(r.t.name)+'</span></td><td>'+(isBkk(r.t)?'กทม.':'ตจว.')+'</td><td class="n"><b>'+r.pts+'</b></td><td style="width:18%"><div class="bar"><i style="width:'+(r.pts/max*100)+'%"></i></div></td><td class="n">'+r.nOk+'</td><td class="n">'+(r.no||'')+'</td><td class="n">'+(r.k1?'<a href="#" data-k1="1" style="font-weight:700;color:var(--brand)">'+r.k1+' งาน</a>':'')+'</td><td style="font-size:12px;color:#555">'+Object.keys(r.grp).sort().map(g=>g+' '+r.grp[g]).join(' · ')+'</td></tr>';});
   const k1=rows.reduce((a,r)=>a+r.k1,0);
   $('#view').innerHTML=h+'</table>'+(k1?'<div style="font-size:12px;color:var(--mut);margin-top:6px">งานไม่มีคะแนนรวม <b>'+k1+'</b> งาน · ระบบเก็บไว้ทุกรายการ ดูรวมได้ที่แท็บ <a href="#" data-k1="1">📝 งานอื่นๆ</a></div>':'')+'</div>';
   document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='ทั้งหมด';go('rv');});
@@ -229,12 +228,12 @@ function vScore(){
 }
 function vPoint(){
   const bk=TECHS.filter(isBkk);let tot=0;
-  let h='<div class="note">🛵 ค่าจุด = 1 จุด ต่อ วัน + รพ. ที่มีงาน<b>ผ่านตรวจ</b> · กทม. 75 บาท · ปริมณฑล 100 บาท · เฉพาะช่าง กทม./ปริมณฑล (ตจว. ยังไม่คิด)</div><div class="box"><table><tr><th>ช่าง</th><th class="n">จุด กทม. (75)</th><th class="n">จุด ปริมณฑล (100)</th><th class="n">รวม (บาท)</th><th class="n">รอตรวจ</th></tr>';
+  let h='<div class="note">🛵 ค่าจุด = 1 จุด ต่อ วัน + รพ. ที่มีงาน (นับอัตโนมัติ) · กทม. 75 บาท · ปริมณฑล 100 บาท · เฉพาะช่าง กทม./ปริมณฑล (ตจว. ยังไม่คิด)</div><div class="box"><table><tr><th>ช่าง</th><th class="n">จุด กทม. (75)</th><th class="n">จุด ปริมณฑล (100)</th><th class="n">รวม (บาท)</th></tr>';
   bk.forEach(t=>{const p=pointRows(t.name),a=p.filter(x=>x.rate===75).length,b=p.filter(x=>x.rate===100).length,s=a*75+b*100;tot+=s;
     const w=RECS.filter(r=>r.tech===t.name&&inMonth(r)&&r.status==='รอตรวจ').length;
-    h+='<tr class="click" data-pt="'+esc(t.name)+'"><td><b>'+esc(nick(t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(t.name)+'</span></td><td class="n">'+a+'</td><td class="n">'+b+'</td><td class="n"><b>'+s.toLocaleString()+'</b></td><td class="n">'+(w?w+' งาน':'')+'</td></tr><tr class="hidden" id="pd-'+esc(t.name)+'"><td colspan="5" style="background:#FBF7F2">'+
+    h+='<tr class="click" data-pt="'+esc(t.name)+'"><td><b>'+esc(nick(t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(t.name)+'</span></td><td class="n">'+a+'</td><td class="n">'+b+'</td><td class="n"><b>'+s.toLocaleString()+'</b></td></tr><tr class="hidden" id="pd-'+esc(t.name)+'"><td colspan="4" style="background:#FBF7F2">'+
       (p.map(x=>thD(x.dateKey)+' · '+esc(x.hospital)+' · <b>'+x.rate+'</b>').join('<br>')||'—')+'</td></tr>';});
-  h+='<tr><th colspan="3">รวมทั้งเดือน</th><th class="n">฿'+tot.toLocaleString()+'</th><th></th></tr></table><div style="font-size:11.5px;color:var(--mut);margin-top:6px">แตะชื่อช่างเพื่อดูรายการจุด</div></div>';
+  h+='<tr><th colspan="3">รวมทั้งเดือน</th><th class="n">฿'+tot.toLocaleString()+'</th></tr></table><div style="font-size:11.5px;color:var(--mut);margin-top:6px">แตะชื่อช่างเพื่อดูรายการจุด</div></div>';
   $('#view').innerHTML=h;
   document.querySelectorAll('[data-pt]').forEach(tr=>tr.onclick=()=>document.getElementById('pd-'+tr.dataset.pt).classList.toggle('hidden'));
 }
@@ -249,7 +248,7 @@ function vWeek(){
   $('#view').innerHTML=h+'</table></div>';
   $('#wTech').onchange=e=>{wkTech=e.target.value;vWeek();};$('#wPrev').onclick=()=>{wkStart=addD(wkStart,-7);vWeek();};$('#wNext').onclick=()=>{wkStart=addD(wkStart,7);vWeek();};
 }
-function count(){$('#nWait').textContent=RECS.filter(r=>inMonth(r)&&(r.status==='รอตรวจ'||r.status==='รอเอกสาร')).length||'';$('#nOt').textContent=RECS.filter(r=>inMonth(r)&&r.code==='K1').length||'';}
+function count(){$('#nWait').textContent='';$('#nOt').textContent=RECS.filter(r=>inMonth(r)&&r.code==='K1').length||'';}
 function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pl:vPlan,pt:vPoint,wk:vWeek})[t]();count();window.scrollTo(0,0);}
 // ===== บันทึกผลตรวจเข้าระบบกลาง (เฉพาะข้อมูลจริง) =====
 function postRev(id,s,reason){if(!LIVE||sampleOn())return;fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:'tech',op:'review',id:id,status:s,by:REVIEWER,reason:reason||''})}).then(r=>r.json()).then(j=>{if(!j.ok)throw 0;}).catch(()=>alert('บันทึกผลตรวจเข้าระบบไม่สำเร็จ — เช็กเน็ตแล้วกดใหม่อีกครั้งนะคะ'));}
@@ -258,11 +257,11 @@ function visitKey(r){var m=String(r.desc||r.detail||'').match(/เวลา\s*(\
 function months(){const s=$('#selMonth');const ms=[...new Set(RECS.map(r=>r.dateKey.slice(0,7)).concat([TODAY.slice(0,7)]))].sort().reverse();
   s.innerHTML=ms.map(m=>'<option value="'+m+'">'+MONF[+m.slice(5)-1]+' '+(+m.slice(0,4)+543)+'</option>').join('');s.value=month;s.onchange=()=>{month=s.value;go(tab);};}
 months();
-document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(b.dataset.t==='rv'&&tab!=='rv'){fStat='รอตรวจ';}go(b.dataset.t);});
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(b.dataset.t==='rv'&&tab!=='rv'){fStat='ทั้งหมด';}go(b.dataset.t);});
 $('#logout').onclick=()=>{try{sessionStorage.removeItem('endo_dash')}catch(e){}location.reload();};
 const SYNC_URL=(window.APP_CONFIG&&window.APP_CONFIG.SYNC_URL)||'';let LIVE=false,liveAt=null;
 function loadLive(){if(!SYNC_URL||sampleOn())return;LIVE=false;demoBar();const n=new Date(),from=dk(new Date(n.getFullYear(),n.getMonth()-11,1));
-  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:o.status||'รอตรวจ',by:o.by||'',reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,ts:o.ts||o.savedAt}));LIVE=true;liveAt=new Date();months();demoBar();go(tab);})
+  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,ts:o.ts||o.savedAt}));LIVE=true;liveAt=new Date();months();demoBar();go(tab);})
   .catch(()=>{$('#demoBar').innerHTML='⚠️ โหลดรายงานไม่สำเร็จ (เน็ต/ระบบ) · <a href="#" onclick="loadLive();return false">ลองใหม่</a>';});}
 const liveBar=()=>LIVE?'🟢 รายงานจริงจากแอปช่าง '+RECS.length+' รายการ · อัปเดต '+String(liveAt.getHours()).padStart(2,'0')+':'+String(liveAt.getMinutes()).padStart(2,'0')+' · <a href="#" onclick="loadLive();return false">โหลดใหม่</a> · <a href="#" id="sampleOn">ดูข้อมูลตัวอย่าง</a>'
   :'⏳ กำลังโหลดรายงานจากแอปช่าง...';
