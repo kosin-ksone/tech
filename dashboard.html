@@ -143,6 +143,14 @@ function kpBellOpen(){let s='';try{s=localStorage.getItem('kp_seen_'+APP_ID)||''
     '<div style="font-size:12px;color:#888">แตะรายการเพื่อเปิดรายงานนั้น</div></div>';
   document.body.appendChild(o);kpBellPaint();o.querySelector('[data-x]').onclick=()=>o.remove();o.onclick=e=>{if(e.target===o)o.remove();};
   o.querySelectorAll('.kpbi').forEach(el=>el.onclick=()=>{const r=rs[+el.dataset.i].r;o.remove();fTech=r.tech;fStat='ทั้งหมด';if(month!==r.dateKey.slice(0,7)){month=r.dateKey.slice(0,7);const sm=document.getElementById('selMonth');if(sm)sm.value=month;}go('rv');setTimeout(()=>{const b=document.querySelector('[data-note="'+r.id+'"]');if(b)b.scrollIntoView({block:'center'});},300);});}
+/* KOPASS: อัปเดตเองทุก 1 นาที */
+function kpPoll(){if(!KP||!LIVE||!SYNC_URL||sampleOn()||document.visibilityState!=='visible'||document.querySelector('.kpz,.wkz')||/TEXTAREA|INPUT/.test((document.activeElement||{}).tagName||''))return;
+  const n=new Date(),from=dk(new Date(n.getFullYear(),n.getMonth()-11,1));
+  fetch(SYNC_URL+'?op=list&app='+APP_ID+'&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok||!LIVE)return;const m={};j.list.forEach(o=>m[o.id]=o);
+    if(j.list.length!==RECS.length||j.list.some(o=>!RECS.find(r=>r.id===o.id))){const y=scrollY;loadLive();setTimeout(()=>scrollTo(0,y),1500);return;}   // มีรายงานใหม่ → โหลดทั้งชุด
+    let ch=false;RECS.forEach(r=>{const o=m[r.id];if(o&&JSON.stringify(o.notes||[])!==JSON.stringify(r.notes||[])){r.notes=o.notes||[];ch=true;}});
+    if(ch){kpBellPaint();const y=scrollY;go(tab);scrollTo(0,y);}liveAt=new Date();}).catch(()=>{});}
+setInterval(kpPoll,60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(kpPoll,500);});
 function kpWarn(r){return KP&&r.warn&&r.warn.length?'<div class="kpw">⚠️ แจ้ง KOSIE<br>'+r.warn.map(esc).join('<br>')+'</div>':'';}
 let RECS=sampleOn()?buildDemo():[];
 function loadRev(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return{}}}
