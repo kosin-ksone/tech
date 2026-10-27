@@ -610,7 +610,7 @@ function hosSuggest(inp,getOwn,getAll,onPick){
   inp.addEventListener('input',draw); inp.addEventListener('focus',draw);
   inp.addEventListener('blur',function(){ setTimeout(function(){ box.style.display='none'; },200); });
 }
-function myZoneHos(){const z=(window.ZONE_TECH||{})[currentTech&&currentTech.name]||[];return z.slice().sort(new Intl.Collator('th').compare);}
+function myZoneHos(){const z=(window.ZONE_TECH||{})[currentTech&&currentTech.name]||[];const l=z.slice().sort(new Intl.Collator('th').compare);return currentTech&&techRegion(currentTech)==='กทม./ปริมณฑล'?['ออฟฟิศ กทม.'].concat(l.filter(x=>x!=='ออฟฟิศ กทม.')):l;}   // ช่าง กทม. มี ออฟฟิศ กทม. บนสุด
 let _allHos=null;function allZoneHos(){if(!_allHos){const s={};Object.keys(window.ZONE_INFO||{}).forEach(h=>s[h]=1);Object.values(window.ZONE_TECH||{}).forEach(a=>a.forEach(h=>s[h]=1));_allHos=Object.keys(s).sort(new Intl.Collator('th').compare);}return _allHos;}
 function enterApp(){
   $('#scrLogin').classList.add('hidden');$('#scrOk').classList.add('hidden');$('#scrApp').classList.remove('hidden');
@@ -1184,7 +1184,17 @@ function draftMail(){
   location.href='mailto:'+MAIL_TO_TECH+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
   setTimeout(()=>showModal({icon:'📎',title:'อย่าลืมแนบไฟล์นะคะ',body:'แอปเมลเปิดพร้อมข้อความแล้ว — แนบ PDF รายงาน (กด ⬇ PDF ในหน้านี้ก่อน) แล้วกดส่งจากเมลของตัวเอง',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]}),800);
 }
-function renderMine(){ syncStatus();
+/* งานในวันเดียวกัน: เรียงตามเวลาที่บันทึก · ที่เดียวกันติดกัน = รวมแถว · กลับไปที่เดิมอีกรอบ (มีที่อื่นคั่น) = แถวใหม่ */
+function visitKey(r){var m=String(r.desc||r.detail||'').match(/เวลา\s*(\d{1,2})[.:](\d{2})/);if(m)return ('0'+m[1]).slice(-2)+':'+m[2];var t=r.ts||r.savedAt;if(!t)return '99:99';var d=new Date(t);return isNaN(d)?'99:99':('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}   // เวลาไปจริง (จากรายละเอียด) > เวลาที่บันทึก
+function visitRuns(items){const out=[];items.slice().sort((a,b)=>visitKey(a).localeCompare(visitKey(b))||String(a.ts||'').localeCompare(String(b.ts||''))).forEach(r=>{const k=(r.hospital||'-').trim(),l=out[out.length-1];if(l&&l.hos===k)l.push(r);else{const x=[r];x.hos=k;out.push(x);}});return out;}
+/* ===== ดึงรายงานของตัวเองกลับจากระบบ (เปลี่ยนเครื่อง / กรอกคนละที่ / ล้างเครื่อง) ===== */
+let syPullAt=0;
+function syncPull(force){ if(!SYNC_URL||!currentTech||(!force&&Date.now()-syPullAt<300000)) return; syPullAt=Date.now();
+  const n=new Date(),from=dkey(new Date(n.getFullYear(),n.getMonth()-3,1));
+  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{ if(!j||!j.ok) return; const a=getReports(),ids={}; a.forEach(r=>ids[r.id]=1); let add=0;
+    j.list.forEach(o=>{ if(o.tech!==currentTech.name||ids[o.id]) return; const r=Object.assign({},o,{thumbs:(o.photos||[]).map(u=>String(u).replace('&sz=w1000','&sz=w400')),photoCount:(o.photos||[]).length,fromServer:1}); delete r.photos; a.push(r); add++; });
+    if(add){ saveReports(a); try{ if(!$('#mineBody').closest('.hidden')) renderMine(); }catch(e){} } }).catch(()=>{}); }
+function renderMine(){ syncStatus(); syncPull();
   if(!mineWeek)mineWeek=wkStart(todayKey());
   const ws=mineWeek,wm=weekOfMonth(ws),days=weekDays(ws),nRec=days.reduce((a,d)=>a+d.items.length,0);
   const cur=wkStart(todayKey()),isCur=ws===cur;
@@ -1196,10 +1206,10 @@ function renderMine(){ syncStatus();
     const nPh=d.items.reduce((a,r)=>a+(r.photoCount||0),0);
     h+='<div class="day"><div class="dh">'+dname+'<span>📷 '+nPh+' รูป <button class="dbtn" data-day="'+d.dk+'">⬇ PDF วันนี้</button><button class="dbtn" data-xday="'+d.dk+'">📊 Excel</button></span></div>';
     // แยกกล่องย่อยต่อ รพ. — ใต้ รพ. เป็นงานแต่ละงาน พร้อมรูปของงานนั้น
-    const g={},order=[];d.items.forEach(r=>{const k=(r.hospital||'-').trim();if(!g[k]){g[k]=[];order.push(k);}g[k].push(r);});
-    order.forEach(hn=>{
+    const g={},order=[];visitRuns(d.items).forEach((x,i)=>{g[i]=x;order.push(i);});   // ไปที่เดิมซ้ำ (มีที่อื่นคั่น) = แยกแถว · เรียงตามเวลา
+    order.forEach(gk=>{const hn=g[gk].hos;
       h+='<div class="it"><div class="wh" style="font-weight:700">📍 '+esc(hn)+'</div>';
-      g[hn].forEach(r=>{
+      g[gk].forEach(r=>{
         const th=r.thumbs||[];const show=th.slice(0,4);
         h+='<div style="margin:5px 0 0 6px">• '+r.code+' '+esc(cleanLabel(r))+
           (r.desc?'<div style="color:var(--mut);font-size:11.5px">'+esc(r.desc)+'</div>':'')+
@@ -1214,7 +1224,7 @@ function renderMine(){ syncStatus();
   });
   h+='<div class="dlrow"><button class="btn" data-dl="week">⬇ PDF · สัปดาห์นี้</button><button class="btn" data-dl="month">⬇ PDF · ทั้งเดือน</button></div>'+
     '<div class="dlrow" style="margin-top:-4px"><button class="btn" data-xl="week">📊 Excel · สัปดาห์นี้</button><button class="btn" data-xl="month">📊 Excel · ทั้งเดือน</button></div>'+
-    bkRow()+'<div style="background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.55;margin:8px 0 4px"><b>⚠️ รายงานเก็บอยู่ในเครื่องนี้เท่านั้น</b> — แอปไม่ได้ส่งให้ใคร<br>• โหลด PDF/Excel แล้ว<b>ส่งเมลจากเมลของตัวเอง ทุกสัปดาห์</b><br>• รูปในแอปเก็บแค่ <b>15 วัน</b> — โหลดก่อนรูปหาย<br>• เก็บไฟล์ที่โหลดไว้ในเครื่อง/อีเมลของตัวเองด้วย<br>• <b>เปลี่ยนเครื่อง:</b> กด 💾 สำรองข้อมูล → เครื่องใหม่กด ♻️ กู้คืนข้อมูล</div>';
+    bkRow()+'<div style="background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.55;margin:8px 0 4px"><b>ℹ️ รายงานเข้าระบบบริษัทแล้ว + มีสำเนาในเครื่องนี้</b> — เปลี่ยนเครื่อง/ล้างเครื่อง แอปดึงรายงานของคุณกลับมาให้เอง (รูปเก็บในระบบ 1 ปี)<br>• โหลด PDF/Excel แล้ว<b>ส่งเมลจากเมลของตัวเอง ทุกสัปดาห์</b><br>• รูปในแอปเก็บแค่ <b>15 วัน</b> — โหลดก่อนรูปหาย<br>• เก็บไฟล์ที่โหลดไว้ในเครื่อง/อีเมลของตัวเองด้วย<br>• <b>เปลี่ยนเครื่อง:</b> กด 💾 สำรองข้อมูล → เครื่องใหม่กด ♻️ กู้คืนข้อมูล</div>';
   h+='<div class="ver">'+verText()+'</div>';
   $('#mineBody').innerHTML=h;
   $$('#mineBody [data-wk]').forEach(b=>b.onclick=()=>{if(b.disabled)return;mineWeek=addDays(mineWeek,7*+b.dataset.wk);renderMine();});
@@ -1239,8 +1249,8 @@ function weekTableHtml(ws,only,mon){   // only = เฉพาะวันนั�
     const dn=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'][d.d.getDay()]+' '+d.d.getDate()+' '+['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.d.getMonth()]+' '+String((d.d.getFullYear()+543)%100);   // สั้น: จ. 26 ต.ค. 69
     if(!d.items.length){h+='<tr><td>'+dn+'</td><td colspan="5" class="off">'+(d.off?'วันหยุด'+(d.offName?' · '+esc(d.offName):''):'-')+'</td></tr>';return;}
     // แยก 1 แถวต่อ รพ. (งาน/รายละเอียด/ปัญหา/รูป ของ รพ. นั้น) · ช่องวันที่รวมแถว
-    const g={},order=[];d.items.forEach(r=>{const k=(r.hospital||'-').trim();if(!g[k]){g[k]=[];order.push(k);}g[k].push(r);});
-    order.forEach((hn,gi)=>{const it=g[hn];
+    const g={},order=[];visitRuns(d.items).forEach((x,i)=>{g[i]=x;order.push(i);});   // ไปที่เดิมซ้ำ (มีที่อื่นคั่น) = แยกแถว · เรียงตามเวลา
+    order.forEach((gk,gi)=>{const it=g[gk],hn=it.hos;
       const what=it.map(r=>esc(cleanLabel(r))).join('<br>');
       const det=it.map(r=>r.desc?'- '+esc(r.desc):'').filter(Boolean).join('<br>')||'-';
       const prob=it.map(r=>r.note?'- '+esc(r.note):'').filter(Boolean).join('<br>')||'-';
@@ -1290,7 +1300,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.9 · 27 ต.ค. 69';
+const APP_VER='v2.10 · 27 ต.ค. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
