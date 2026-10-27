@@ -612,7 +612,8 @@ function hosSuggest(inp,getOwn,getAll,onPick){
 }
 /* ออฟฟิศตามภาค (บนสุดของรายชื่อสถานที่) — กทม. · อีสาน=ขอนแก่น · ใต้=หาดใหญ่ · เหนือ=เชียงใหม่ · ดูจากจังหวัดฐานของช่าง */
 const OFF_REG=[['ออฟฟิศ ขอนแก่น',['ขอนแก่น','อุบลราชธานี','นครราชสีมา','อุดรธานี','หนองคาย','สกลนคร','นครพนม','มหาสารคาม','ร้อยเอ็ด','กาฬสินธุ์','เลย','บึงกาฬ','หนองบัวลำภู','ชัยภูมิ','บุรีรัมย์','สุรินทร์','ศรีสะเกษ','ยโสธร','อำนาจเจริญ','มุกดาหาร']],['ออฟฟิศ หาดใหญ่',['สงขลา','ปัตตานี','ยะลา','นราธิวาส','สตูล','พัทลุง','ตรัง','นครศรีธรรมราช','สุราษฎร์ธานี','ชุมพร','ระนอง','พังงา','ภูเก็ต','กระบี่']],['ออฟฟิศ เชียงใหม่',['เชียงใหม่','เชียงราย','ลำพูน','ลำปาง','แพร่','น่าน','พะเยา','แม่ฮ่องสอน','อุตรดิตถ์','พิษณุโลก','พิจิตร','สุโขทัย','ตาก','กำแพงเพชร','เพชรบูรณ์','นครสวรรค์','อุทัยธานี']]];
-function myOffices(){if(!currentTech)return[];const home=((window.TCJ_HOME||{})[currentTech.name]||[]),o=[];if(techRegion(currentTech)==='กทม./ปริมณฑล'||home.indexOf('กทม')>=0)o.push('ออฟฟิศ กทม.');OFF_REG.forEach(x=>{if(home.some(p=>x[1].indexOf(p)>=0))o.push(x[0]);});return o;}
+function myOffices(){if(!currentTech)return[];const home=((window.TCJ_HOME||{})[currentTech.name]||[]),o=[];const CENTRAL_EAST=['นนทบุรี','ปทุมธานี','สมุทรปราการ','สมุทรสาคร','นครปฐม','อยุธยา','พระนครศรีอยุธยา','อ่างทอง','สิงห์บุรี','ชัยนาท','ลพบุรี','สระบุรี','สุพรรณบุรี','นครนายก','ราชบุรี','กาญจนบุรี','เพชรบุรี','ประจวบคีรีขันธ์','สมุทรสงคราม','ชลบุรี','ระยอง','จันทบุรี','ตราด','ฉะเชิงเทรา','ปราจีนบุรี','สระแก้ว'];   // ภาคกลาง-ตะวันออก = ออฟฟิศ กทม.
+  if(techRegion(currentTech)==='กทม./ปริมณฑล'||home.indexOf('กทม')>=0||home.some(p=>CENTRAL_EAST.indexOf(p)>=0))o.push('ออฟฟิศ กทม.');OFF_REG.forEach(x=>{if(home.some(p=>x[1].indexOf(p)>=0))o.push(x[0]);});return o;}
 function myZoneHos(){const z=(window.ZONE_TECH||{})[currentTech&&currentTech.name]||[];const l=z.slice().sort(new Intl.Collator('th').compare),o=myOffices();return o.concat(l.filter(x=>o.indexOf(x)<0));}
 let _allHos=null;function allZoneHos(){if(!_allHos){const s={};Object.keys(window.ZONE_INFO||{}).forEach(h=>s[h]=1);Object.values(window.ZONE_TECH||{}).forEach(a=>a.forEach(h=>s[h]=1));_allHos=Object.keys(s).sort(new Intl.Collator('th').compare);}return _allHos;}
 function enterApp(){
@@ -1303,7 +1304,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.11 · 27 ต.ค. 69';
+const APP_VER='v2.12 · 27 ต.ค. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
