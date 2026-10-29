@@ -97,7 +97,8 @@ const thD=k=>{const d=kd(k);return DOW[d.getDay()]+' '+d.getDate()+' '+MON[d.get
 const TECHS=(window.TECHNICIANS||[]).filter(t=>t.status!=='pending');
 const isBkk=t=>(t.region||'กทม./ปริมณฑล')!=='ต่างจังหวัด';
 const nick=t=>t.nick||t.name.split(' ')[0];
-function rateOf(h){const z=(window.ZONE_INFO||{})[h];if(!z)return 75;if(z.p==='กทม')return 75;if(PAR.indexOf(z.p)>=0)return 100;return 0;}
+const isOffice=h=>/^\s*(ออฟฟิศ|ออฟฟิส|บริษัท|สำนักงาน|office|kosin)/i.test(String(h||''));   // เข้าออฟฟิศ = ไม่คิดค่าจุด (พี่ฝน 29 ต.ค. 69)
+function rateOf(h){if(isOffice(h))return 0;const z=(window.ZONE_INFO||{})[h];if(!z)return 75;if(z.p==='กทม')return 75;if(PAR.indexOf(z.p)>=0)return 100;return 0;}
 function photo(label,hue){const svg='<svg xmlns="http://www.w3.org/2000/svg" width="240" height="180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl('+hue+',45%,72%)"/><stop offset="1" stop-color="hsl('+((hue+40)%360)+',40%,90%)"/></linearGradient></defs><rect width="240" height="180" fill="url(#g)"/><text x="120" y="98" font-family="Tahoma" font-size="20" text-anchor="middle" fill="rgba(0,0,0,.55)">'+label+'</text></svg>';
   return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);}
 // ข้อมูลตัวอย่าง (สุ่มแบบคงที่)
@@ -264,12 +265,12 @@ function vPoint(){   // ค่าจุดรายเดือน แบบต�
   const bk=TECHS.filter(isBkk),mLbl=(document.getElementById('selMonth')||{}).selectedOptions?.[0]?.text||month;let tot=0,totA=0,totB=0;
   const zoneTxt=h=>{const z=(window.ZONE_INFO||{})[h];return z?(z.p==='กทม'?'กทม.'+(z.a?' · '+z.a:''):z.p+(z.a?' · '+z.a:'')):'<span style="color:#B7791F">ไม่อยู่ในรายชื่อเขต → คิดแบบ กทม.</span>';};
   let h='<div class="filters noprint"><button class="btn" id="ptAll">📂 กาง/พับ ทุกคน</button><button class="btn pri" id="ptPrint">⬇ PDF / พิมพ์</button></div>'+
-    '<div class="note">🛵 <b>ค่าจุด เดือน '+esc(mLbl)+'</b> · 1 จุด = ช่าง 1 คน + 1 วัน + 1 สถานที่ ที่มีงาน (หลายงานที่เดียวกันวันเดียวกัน = 1 จุด) · กทม. 75 บาท · ปริมณฑล ('+PAR.join(' ')+') 100 บาท · ต่างจังหวัดไม่คิด · งานที่กด ⛔ ไม่นับ ไม่คิด · เฉพาะช่าง กทม./ปริมณฑล</div>';
+    '<div class="note">🛵 <b>ค่าจุด เดือน '+esc(mLbl)+'</b> · 1 จุด = ช่าง 1 คน + 1 วัน + 1 สถานที่ ที่มีงาน (หลายงานที่เดียวกันวันเดียวกัน = 1 จุด) · กทม. 75 บาท · ปริมณฑล ('+PAR.join(' ')+') 100 บาท · ต่างจังหวัดไม่คิด · เข้าออฟฟิศ/บริษัทไม่คิด · งานที่กด ⛔ ไม่นับ ไม่คิด · เฉพาะช่าง กทม./ปริมณฑล</div>';
   h+='<div class="box"><table class="ptsum"><tr><th>ช่าง</th><th class="n">จุด กทม. (75)</th><th class="n">จุด ปริมณฑล (100)</th><th class="n">รวม (บาท)</th></tr>';
   const det=[];
   bk.forEach(t=>{const p=pointRows(t.name),a=p.filter(x=>x.rate===75).length,b=p.filter(x=>x.rate===100).length,sm=a*75+b*100;tot+=sm;totA+=a;totB+=b;
     const mine=RECS.filter(r=>r.tech===t.name&&inMonth(r));
-    const ex=[];mine.forEach(r=>{if(r.status==='ไม่ผ่าน')ex.push([r,'กด ⛔ ไม่นับ'+(r.reason?' ('+r.reason+')':'')]);else if(!rateOf(r.hospital))ex.push([r,'ต่างจังหวัด ('+(((window.ZONE_INFO||{})[r.hospital]||{}).p||'')+')']);});
+    const ex=[];mine.forEach(r=>{if(r.status==='ไม่ผ่าน')ex.push([r,'กด ⛔ ไม่นับ'+(r.reason?' ('+r.reason+')':'')]);else if(isOffice(r.hospital))ex.push([r,'เข้าออฟฟิศ — ไม่คิดค่าจุด']);else if(!rateOf(r.hospital))ex.push([r,'ต่างจังหวัด ('+(((window.ZONE_INFO||{})[r.hospital]||{}).p||'')+')']);});
     h+='<tr class="click" data-pt="'+esc(t.name)+'"><td><b>'+esc(nick(t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(t.name)+'</span></td><td class="n">'+a+'</td><td class="n">'+b+'</td><td class="n"><b>'+sm.toLocaleString()+'</b></td></tr>';
     let d='<div class="ptd hidden" id="pd-'+esc(t.name)+'"><h3 style="margin:14px 0 6px">'+esc(t.name)+' ('+esc(nick(t))+') · '+(a+b)+' จุด · ฿'+sm.toLocaleString()+'</h3>';
     d+=p.length?'<table><tr><th style="width:4%">#</th><th style="width:11%">วันที่</th><th style="width:20%">สถานที่</th><th style="width:17%">เขต / จังหวัด</th><th>งานที่ทำ (คิดจากรายงานเหล่านี้)</th><th class="n" style="width:6%">รูป</th><th class="n" style="width:8%">ค่าจุด</th></tr>'+
