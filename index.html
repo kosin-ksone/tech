@@ -198,7 +198,7 @@
   .modal input,.modal select{width:100%;border:1px solid var(--line2);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;margin-bottom:10px;background:#fff;color:var(--txt)}
   .mnote{font-size:10.5px;color:var(--mut2);margin-top:10px}
 </style>
-<style>@keyframes syBlink{50%{opacity:.35}}.syBlink{animation:syBlink 1s infinite;color:#B7791F;font-weight:700}</style><style>.bellbtn{border:0;background:rgba(255,255,255,.15);border-radius:12px;font-size:20px;padding:4px 8px;margin-right:6px;position:relative;cursor:pointer}.bellbtn i{position:absolute;top:-4px;right:-4px;background:#E53935;color:#fff;font-style:normal;font-size:11px;font-weight:700;border-radius:10px;padding:1px 6px}.bellbtn.ring{animation:bellR 1.2s infinite}@keyframes bellR{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(-14deg)}20%,40%{transform:rotate(14deg)}}.bellov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99999;display:flex;align-items:flex-end;justify-content:center}.bellbox{background:#fff;border-radius:18px 18px 0 0;padding:16px;width:100%;max-width:560px;max-height:85vh;overflow:auto;color:#222}.bellbox .bx{border:0;background:#eee;border-radius:50%;width:32px;height:32px;font-size:16px}.bellit{border:1px solid #e3e3e3;border-radius:12px;padding:10px;margin-bottom:10px}.bellit .bh{font-weight:700;font-size:14px;margin-bottom:6px}.bellit small{color:#888;font-weight:400}.bks,.bme{font-size:14.5px;line-height:1.55;padding:7px 10px;border-radius:10px;margin:5px 0}.bks{background:#EEF4FF}.bme{background:#F1F8EE;margin-left:24px}.bellit textarea{width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:10px;padding:8px;font:inherit;font-size:15px;margin-top:6px}.bsend{margin-top:6px;border:0;border-radius:10px;padding:9px 18px;font-weight:700;background:#0B1F4D;color:#fff;font-size:14px}</style></head>
+<style>@keyframes syBlink{50%{opacity:.35}}.syBlink{animation:syBlink 1s infinite;color:#B7791F;font-weight:700}</style><style>.bellbtn{border:0;background:rgba(255,255,255,.15);border-radius:12px;font-size:20px;padding:4px 8px;margin-right:6px;position:relative;cursor:pointer}.bellbtn i{position:absolute;top:-4px;right:-4px;background:#E53935;color:#fff;font-style:normal;font-size:11px;font-weight:700;border-radius:10px;padding:1px 6px}.bellbtn.ring{animation:bellR 1.2s infinite}@keyframes bellR{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(-14deg)}20%,40%{transform:rotate(14deg)}}.bellov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99999;display:flex;align-items:flex-end;justify-content:center}.bellbox{background:#fff;border-radius:18px 18px 0 0;padding:16px;width:100%;max-width:560px;max-height:85vh;overflow:auto;color:#222}.bellbox .bx{border:0;background:#eee;border-radius:50%;width:32px;height:32px;font-size:16px}.bellit{border:1px solid #e3e3e3;border-radius:12px;padding:10px;margin-bottom:10px}.bellit .bh{font-weight:700;font-size:14px;margin-bottom:6px}.bellit small{color:#888;font-weight:400}.bks,.bme{font-size:14.5px;line-height:1.55;padding:7px 10px;border-radius:10px;margin:5px 0}.bks{background:#EEF4FF}.bme{background:#F1F8EE;margin-left:24px}.bellit textarea{width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:10px;padding:8px;font:inherit;font-size:15px;margin-top:6px}.bsend{margin-top:6px;border:0;border-radius:10px;padding:9px 18px;font-weight:700;background:#0B1F4D;color:#fff;font-size:14px}</style><style>.navb{border:1px solid rgba(0,0,0,.12);background:#fff;color:#333;border-radius:10px;padding:6px 10px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}.navb.hidden{display:none!important}@media print{.navb{display:none!important}}</style></head>
 <body>
 <div class="wrap">
   <section id="scrLogin">
@@ -221,7 +221,7 @@
   </section>
 
   <section id="scrApp" class="hidden">
-    <div class="top"><button class="ic" id="backBtn" type="button" title="กลับไปเลือกชื่อ" style="border:none;cursor:pointer;font-size:22px;font-weight:600;padding:0">‹</button><div style="flex:1"><div class="stripe" style="font-size:19px" id="brandTop">ENDOSCOPE &amp;</div><div class="sub" id="brandTopSub">SERVICE · รายงานงานช่าง</div></div><button id="bellBtn" class="bellbtn hidden" type="button" onclick="bellOpen()">🔔</button><div class="who" id="who"></div></div>
+    <div class="top"><button class="ic" id="backBtn" type="button" title="กลับไปเลือกชื่อ" style="border:none;cursor:pointer;font-size:22px;font-weight:600;padding:0">‹</button><div style="flex:1"><div class="stripe" style="font-size:19px" id="brandTop">ENDOSCOPE &amp;</div><div class="sub" id="brandTopSub">SERVICE · รายงานงานช่าง</div></div><button id="navBack" class="navb hidden" style="margin-right:6px" type="button" onclick="navBack()">‹ ย้อนกลับ</button><button id="navHome" class="navb hidden" style="margin-right:6px" type="button" onclick="navHome()">🏠 หน้าแรก</button><button id="bellBtn" class="bellbtn hidden" type="button" onclick="bellOpen()">🔔</button><div class="who" id="who"></div></div>
     <div class="tabs">
       <button class="tab on" id="tabBtnReport"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="13" height="17" rx="2"/><path d="M9 2h5v4H9z"/><path d="M8.5 11h6M8.5 15h4"/><path d="M20.5 9.5l-6 6-2 .5.5-2 6-6z"/></svg>เขียนรายงาน</button>
       <button class="tab" id="tabBtnPlan"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h2M12 14h2M8 17h2"/></svg>ตารางงาน</button>
@@ -635,6 +635,17 @@ function switchTab(name){
   if(name==='score')renderScore();
   window.scrollTo(0,0);
 }
+
+/* ===== ย้อนกลับทีละชั้น + หน้าแรก (พี่ฝน 29 ต.ค. 69) · ปัดกลับ/ปุ่ม Back ของเครื่องใช้ได้ ===== */
+var NAVST=[],NAVSKIP=false;
+function navSnap(){return {t:(['report','plan','mine','score'].filter(function(n){var b=document.getElementById({report:'tabBtnReport',plan:'tabBtnPlan',mine:'tabBtnMine',score:'tabBtnScore'}[n]);return b&&b.classList.contains('on');})[0]||'report'),y:window.scrollY};}
+function navPaint(){var b=document.getElementById('navBack'),h=document.getElementById('navHome');if(b)b.classList.toggle('hidden',!NAVST.length);if(h)h.classList.toggle('hidden',!NAVST.length&&((['report','plan','mine','score'].filter(function(n){var b=document.getElementById({report:'tabBtnReport',plan:'tabBtnPlan',mine:'tabBtnMine',score:'tabBtnScore'}[n]);return b&&b.classList.contains('on');})[0]||'report'))==='report');}
+var switchTab0=switchTab;switchTab=function(t){var c=(['report','plan','mine','score'].filter(function(n){var b=document.getElementById({report:'tabBtnReport',plan:'tabBtnPlan',mine:'tabBtnMine',score:'tabBtnScore'}[n]);return b&&b.classList.contains('on');})[0]||'report');if(!NAVSKIP&&c&&t!==c){NAVST.push(navSnap());try{history.pushState({kn:NAVST.length},'');}catch(e){}}NAVSKIP=false;var r=switchTab0.apply(this,arguments);navPaint();return r;};
+try{history.replaceState({kn:0},'');}catch(e){}
+window.addEventListener('popstate',function(e){var k=(e.state&&e.state.kn)||0,s=null;if(NAVST.length<=k)return;while(NAVST.length>k)s=NAVST.pop();NAVSKIP=true;switchTab(s.t);var y=s.y;setTimeout(function(){window.scrollTo(0,y);},30);navPaint();});
+function navBack(){if(NAVST.length)history.back();}
+function navHome(){if(NAVST.length)history.go(-NAVST.length);else{NAVSKIP=true;switchTab('report');navPaint();}}
+setTimeout(navPaint,0);
 $('#tabBtnReport').onclick=()=>switchTab('report');
 $('#tabBtnPlan').onclick=()=>switchTab('plan');
 $('#tabBtnMine').onclick=()=>switchTab('mine');
@@ -1321,7 +1332,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.15 · 27 ต.ค. 69';
+const APP_VER='v2.16 · 29 ต.ค. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 

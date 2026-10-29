@@ -48,7 +48,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
 .hidden{display:none!important}
 @media(max-width:640px){.rec{grid-template-columns:1fr}.rec .act{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap}.reason{text-align:left}}
 .wk td{cursor:zoom-in}.wk td:hover{background:#FFF8D6;outline:2px solid #E0A800;outline-offset:-2px}.wkz{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}.wkz>div{background:#fff;border-radius:14px;padding:20px 22px;max-width:760px;width:100%;max-height:85vh;overflow:auto;font-size:19px;line-height:1.7;box-shadow:0 10px 30px rgba(0,0,0,.3)}.wkz .h{font-size:13px;color:#777;margin-bottom:6px}.wkz img{max-width:100%;max-height:78vh;display:block;margin:0 auto}@media print{.wk td:hover{background:none;outline:0}}.kpn{margin-top:6px}.kpn>div{font-size:13px;line-height:1.5;padding:6px 9px;border-radius:8px;margin:4px 0}.kpn .ks{background:#EEF4FF;border:1px solid #C7D7F5}.kpn .st{background:#F1F8EE;border:1px solid #CFE6C4}.kpn span{color:#888;font-size:11px}.kpz{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}.kpz>div{background:#fff;border-radius:14px;padding:18px;max-width:480px;width:100%}.kpz textarea{width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:10px;padding:10px;font:inherit;font-size:15px}@media print{.kpn button{display:none}}.kpw{margin:6px 0 2px;padding:6px 9px;border-radius:8px;background:#FFF1F0;border:1px solid #F5B5AE;color:#B42318;font-size:12px;line-height:1.5}.wk .kpw{font-size:10.5px;padding:3px 5px}.ptd table{table-layout:fixed}.ptd th,.ptd td{font-size:12px;vertical-align:top}@media print{.ptd{break-inside:auto}.ptd h3{break-after:avoid}.ptsum tr.click{cursor:default}}@page{size:A4;margin:10mm}@media print{.top,.tabs,.demo,.filters,.noprint{display:none!important}.box{border:0}}
-</style></head><body>
+</style><style>.navb{border:1px solid rgba(0,0,0,.12);background:#fff;color:#333;border-radius:10px;padding:6px 10px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}.navb.hidden{display:none!important}@media print{.navb{display:none!important}}</style></head><body>
 
 <div id="login" class="login">
   <img src="endo-logo.png" alt="ENDOSCOPE & SERVICE">
@@ -62,7 +62,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
 
 <div id="app" class="hidden">
   <div class="top">
-    <img src="endo-logo.png" alt="ENDO">
+    <img src="endo-logo.png" alt="ENDO"><button id="navBack" class="navb hidden" type="button" onclick="navBack()">‹ ย้อนกลับ</button><button id="navHome" class="navb hidden" type="button" onclick="navHome()">🏠 หน้าแรก</button>
     <div class="t">Dashboard ตรวจรายงานช่าง<small>คะแนน · ค่าจุด · รายงานรายสัปดาห์</small></div>
     <div class="sp"></div>
     <button class="btn" id="kpBell" style="display:none;position:relative;font-size:18px" onclick="kpBellOpen()">🔔</button><select id="selMonth"></select>
@@ -319,6 +319,17 @@ function vWeek(){
 }
 function count(){$('#nWait').textContent='';$('#nOt').textContent=RECS.filter(r=>inMonth(r)&&r.code==='K1').length||'';}
 function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pl:vPlan,pt:vPoint,wk:vWeek})[t]();count();window.scrollTo(0,0);}
+
+/* ===== ย้อนกลับทีละชั้น + หน้าแรก (พี่ฝน 29 ต.ค. 69) · ปัดกลับ/ปุ่ม Back ของเครื่องใช้ได้ ===== */
+var NAVST=[],NAVSKIP=false;
+function navSnap(){return {t:tab,y:window.scrollY,fTech:fTech,fStat:fStat,month:month,wkTech:wkTech,wkStart:wkStart};}
+function navPaint(){var b=document.getElementById('navBack'),h=document.getElementById('navHome');if(b)b.classList.toggle('hidden',!NAVST.length);if(h)h.classList.toggle('hidden',!NAVST.length&&(tab)==='ov');}
+var go0=go;go=function(t){var c=tab;if(!NAVSKIP&&c&&t!==c){NAVST.push(navSnap());try{history.pushState({kn:NAVST.length},'');}catch(e){}}NAVSKIP=false;var r=go0.apply(this,arguments);navPaint();return r;};
+try{history.replaceState({kn:0},'');}catch(e){}
+window.addEventListener('popstate',function(e){var k=(e.state&&e.state.kn)||0,s=null;if(NAVST.length<=k)return;while(NAVST.length>k)s=NAVST.pop();fTech=s.fTech;fStat=s.fStat;wkTech=s.wkTech;wkStart=s.wkStart;if(month!==s.month){month=s.month;var sm=document.getElementById('selMonth');if(sm)sm.value=month;}NAVSKIP=true;go(s.t);var y=s.y;setTimeout(function(){window.scrollTo(0,y);},30);navPaint();});
+function navBack(){if(NAVST.length)history.back();}
+function navHome(){if(NAVST.length)history.go(-NAVST.length);else{NAVSKIP=true;go('ov');navPaint();}}
+setTimeout(navPaint,0);
 // ===== บันทึกผลตรวจเข้าระบบกลาง (เฉพาะข้อมูลจริง) =====
 function postRev(id,s,reason){if(!LIVE||sampleOn())return;fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:'tech',op:'review',id:id,status:s,by:REVIEWER,reason:reason||''})}).then(r=>r.json()).then(j=>{if(!j.ok)throw 0;}).catch(()=>alert('บันทึกผลตรวจเข้าระบบไม่สำเร็จ — เช็กเน็ตแล้วกดใหม่อีกครั้งนะคะ'));}
 function visitKey(r){var m=String(r.desc||r.detail||'').match(/เวลา\s*(\d{1,2})[.:](\d{2})/);if(m)return ('0'+m[1]).slice(-2)+':'+m[2];var t=r.ts||r.savedAt;if(!t)return '99:99';var d=new Date(t);return isNaN(d)?'99:99':('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}   // เวลาไปจริง (จากรายละเอียด) > เวลาที่บันทึก
