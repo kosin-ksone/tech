@@ -296,7 +296,7 @@
 </div>
 
 <script src="config.js"></script>
-<script src="data.js"></script>
+<script src="data.js?v=240"></script>
 <script src="zone.js"></script>
 <script>
 /* ค่าเริ่มต้นนี้ใช้เฉพาะก่อนซิงค์จาก Sheet เท่านั้น (โหมดทดลอง/ออฟไลน์)
@@ -401,7 +401,7 @@ function applyTheme(){
 /* ===== อุปกรณ์ที่ใช้ส่ง (บันทึก + ติดธงถ้าเปลี่ยนผิดปกติ ไม่บล็อก) ===== */
 function deviceId(){let d=localStorage.getItem('kosin_deviceid');if(!d){d='dev_'+Math.random().toString(36).slice(2,10);localStorage.setItem('kosin_deviceid',d);}return d;}
 function deviceLabel(){const ua=navigator.userAgent;let os='อุปกรณ์อื่น';if(/iPad/.test(ua))os='iPad';else if(/iPhone/.test(ua))os='iPhone';else if(/Android/.test(ua))os='Android';else if(/Windows/.test(ua))os='Windows';else if(/Mac/.test(ua))os='Mac';return os;}
-function techKey(){return (currentTech&&(currentTech.lineId||currentTech.pin||currentTech.name))||'';}
+function techKey(){return (currentTech&&(currentTech.lineId||currentTech.name))||'';}
 function knownDev(){try{return JSON.parse(localStorage.getItem('kosin_techdev')||'{}')}catch(e){return{}}}
 function checkDevice(){ // true = อุปกรณ์ใหม่ผิดจากเดิม (ติดธง)
   const map=knownDev(),k=techKey(),dev=deviceId(),list=map[k]||[];
@@ -419,7 +419,7 @@ function initLiff(){
     liff.getProfile().then(function(p){
       // จับคู่ LINE userId กับช่างในรายชื่อ (ถ้าไม่เจอ ใช้ชื่อ LINE)
       const match=allTechs().find(t=>t.lineId&&t.lineId===p.userId);
-      currentTech=match||{name:p.displayName,vehicle:'',pin:'',lineId:p.userId,status:'active'};
+      currentTech=match||{name:p.displayName,vehicle:'',lineId:p.userId,status:'active'};
       enterApp();
     }).catch(function(){});
   }).catch(function(){});}catch(e){}};
@@ -564,7 +564,7 @@ async function addTechFlow(prefillName){
   ov.querySelector('#ntSave').onclick=()=>{
     const nm=ov.querySelector('#ntName').value.trim(),vh=ov.querySelector('#ntVeh').value.trim(),reg=ov.querySelector('#ntReg').value;
     if(!nm){ov.querySelector('#ntName').focus();return;}
-    const arr=newTechs();arr.push({name:nm,vehicle:vh,pin:'',region:reg,status:'pending'});localStorage.setItem('kosin_newtech',JSON.stringify(arr));
+    const arr=newTechs();arr.push({name:nm,vehicle:vh,region:reg,status:'pending'});localStorage.setItem('kosin_newtech',JSON.stringify(arr));
     if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'addtech',name:nm,vehicle:vh,region:reg})}).catch(()=>{});
     host.removeChild(ov);buildLogin();$('#techPick').value=nm;
   };
@@ -582,7 +582,7 @@ function saveReports(a){
   try{localStorage.setItem('kosin_reports',JSON.stringify(a));}
   catch(e){a.forEach(r=>{if(r.thumbs&&r.dateKey<dkey(new Date(Date.now()-10*86400000)))delete r.thumbs;});localStorage.setItem('kosin_reports',JSON.stringify(a));}
 }
-function myRecs(){return getReports().filter(r=>r.pin===currentTech.pin||r.tech===currentTech.name);}
+function myRecs(){return getReports().filter(r=>r.tech===currentTech.name);}
 
 /* ===== enter app ===== */
 /* ===== เดาชื่อ รพ. ขณะพิมพ์ — ทุก รพ. (เขตตัวเองขึ้นก่อน) · พิมพ์คร่าวๆ/กลางคำก็เจอ ===== */
@@ -898,7 +898,7 @@ function onBackdate(){
 }
 $('#backdateDate').onchange=onBackdate;
 function clearBackdate(){reportDate=null;$('#backdateDate').value='';$('#today').textContent=todayStr();$('#backdatePanel').classList.add('hidden');}
-function isDupReport(name){return getReports().some(r=>(r.pin===currentTech.pin||r.tech===currentTech.name)&&r.hospital===name&&r.dateKey===effDateKey());}
+function isDupReport(name){return getReports().some(r=>(r.tech===currentTech.name)&&r.hospital===name&&r.dateKey===effDateKey());}
 
 /* ===== SUBMIT ===== */
 async function doSubmit(silent){
@@ -930,7 +930,7 @@ async function doSubmit(silent){
     else{allowanceType='เบี้ยเลี้ยง';travel=perDiemAmt;area=prov||'ต่างจังหวัด';period=perDiemPeriod;}
   }
   const holiday=isHolidayDate();const hc=holiday?holidayCalc():{bonus:0,ot:false};
-  const base={dateKey:effDateKey(),dateTh:effDateTh(),pin:currentTech.pin,tech:currentTech.name,vehicle:currentTech.vehicle||'',region:techRegion(currentTech),lineId:currentTech.lineId||'',hospital:hname,
+  const base={dateKey:effDateKey(),dateTh:effDateTh(),tech:currentTech.name,vehicle:currentTech.vehicle||'',region:techRegion(currentTech),lineId:currentTech.lineId||'',hospital:hname,
     area:area,travel:travel,allowanceType:allowanceType,period:period,perDiem:allowanceType==='เบี้ยเลี้ยง'&&travel>0,
     isHoliday:holiday,holidayBonus:hc.bonus,ot:hc.ot,
     late:!!reportDate,lateDays:lateDays,
@@ -1028,7 +1028,7 @@ function showOk(recs,h,all){
   $('#okSub').textContent=defer?('มีงานรอแนบใบ maintenance ภายใน '+DOC_GRACE_DAYS+' วัน'):'บันทึกในเครื่องแล้ว — โหลด PDF/Excel ส่งเมลได้ที่ รายงานของฉัน';
   const list=recs.map(r=>'• '+r.code+' '+r.label+(r.status==='รอเอกสาร'?' — รอเอกสาร':'')).join('<br>');
   $('#okSumm').innerHTML='<div class="r"><span>ช่าง</span><span>'+recs[0].tech+'</span></div><div class="r"><span>สถานที่</span><span>'+[...new Set(recs.map(r=>r.hospital))].join('<br>')+'</span></div><div class="tasks" style="padding:8px 0">'+list+'</div><div class="r"><span>รวม</span><span>'+recs.length+' งาน · '+totPh+' รูป</span></div>';
-  const mine=all.filter(r=>(r.pin===currentTech.pin||r.tech===currentTech.name)&&r.dateKey===todayKey());
+  const mine=all.filter(r=>(r.tech===currentTech.name)&&r.dateKey===todayKey());
   $('#todayCount').textContent='วันนี้คุณรายงานแล้ว '+mine.length+' งาน';
 }
 $('#okMineBtn').onclick=()=>{$('#scrOk').classList.add('hidden');$('#scrApp').classList.remove('hidden');switchTab('mine');window.scrollTo(0,0);};
@@ -1332,7 +1332,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.17 · 29 ต.ค. 69';
+const APP_VER='v2.18 · 29 ต.ค. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
