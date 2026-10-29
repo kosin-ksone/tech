@@ -78,7 +78,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
 
 <script src="config.js"></script>
 <script src="data.js"></script>
-<script src="zone.js"></script>
+<script src="zone.js?v=237"></script>
 <script>
 /* ===== Dashboard ENDO (ตัวอย่าง) — ข้อมูลสมมติ สร้างจากรายชื่อช่าง + เขตจริง ===== */
 const PASS='endo1234', KEY='endo_dash_demo_v2';
@@ -98,7 +98,21 @@ const TECHS=(window.TECHNICIANS||[]).filter(t=>t.status!=='pending');
 const isBkk=t=>(t.region||'กทม./ปริมณฑล')!=='ต่างจังหวัด';
 const nick=t=>t.nick||t.name.split(' ')[0];
 const isOffice=h=>/^\s*(ออฟฟิศ|ออฟฟิส|บริษัท|สำนักงาน|office|kosin)/i.test(String(h||''));   // เข้าออฟฟิศ = ไม่คิดค่าจุด (พี่ฝน 29 ต.ค. 69)
-function rateOf(h){if(isOffice(h))return 0;const z=(window.ZONE_INFO||{})[h];if(!z)return 75;if(z.p==='กทม')return 75;if(PAR.indexOf(z.p)>=0)return 100;return 0;}
+const PD_AMT=250;   // เบี้ยเลี้ยง ช่าง กทม. ไป ตจว. ต่อวัน (เท่าช่าง ตจว. · พี่ฝน 29 ต.ค. 69)
+const HN=s=>String(s||'').toLowerCase().replace(/โรงพยาบาล|รพ\.?|\s|\.|-|\(|\)/g,'');
+const H_ALIAS={'medpark':'โรงพยาบาลเมดพาร์ค','medparkhospital':'โรงพยาบาลเมดพาร์ค'};
+let ZN=null;function lev1(a,b){if(Math.abs(a.length-b.length)>1)return false;let i=0,j=0,d=0;while(i<a.length&&j<b.length){if(a[i]===b[j]){i++;j++;continue;}if(++d>1)return false;if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++;}}return d+(a.length-i)+(b.length-j)<=1;}
+function zoneOf(h){const Z=window.ZONE_INFO||{};if(Z[h])return Object.assign({name:h},Z[h]);
+  if(!ZN){ZN={};Object.keys(Z).forEach(k=>{ZN[HN(k)]=k;});}
+  const n=HN(h);if(!n)return null;const k=ZN[n]||H_ALIAS[n];if(k&&Z[k])return Object.assign({name:k,fuzzy:true},Z[k]);
+  if(n.length>=4){const c=Object.keys(ZN).filter(x=>lev1(n,x));if(c.length===1)return Object.assign({name:ZN[c[0]],fuzzy:true},Z[ZN[c[0]]]);}   // พิมพ์ผิด 1 ตัว เช่น ราขวิถี → ราชวิถี
+  return null;}
+const pv=a=>(a==='กทม.'||a==='กทม')?'กทม':a;
+// ประเภทของรายงาน 1 ใบ (ช่าง กทม.): off=ออฟฟิศ · pt=ค่าจุด(rate) · pd=เบี้ยเลี้ยง ตจว. · unk=ไม่รู้เขต รอตรวจ
+function classify(r){if(isOffice(r.hospital))return{k:'off'};const z=zoneOf(r.hospital);let p=z?z.p:null;
+  if(!p&&/^(เบี้ยเลี้ยง|ค่าจุด \(รอพิจารณา\)|ฐาน)/.test(r.allow||'')&&r.area)p=pv(r.area);   // ชื่อพิมพ์เอง แต่แอปรู้จังหวัด
+  if(!p)return{k:'unk'};if(p==='กทม')return{k:'pt',rate:75,z:z};if(PAR.indexOf(p)>=0)return{k:'pt',rate:100,z:z};return{k:'pd',prov:p==='ต่างจังหวัด'?'ต่างจังหวัด':p,z:z};}
+function rateOf(h){const c=classify({hospital:h});return c.k==='pt'?c.rate:0;}
 function photo(label,hue){const svg='<svg xmlns="http://www.w3.org/2000/svg" width="240" height="180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl('+hue+',45%,72%)"/><stop offset="1" stop-color="hsl('+((hue+40)%360)+',40%,90%)"/></linearGradient></defs><rect width="240" height="180" fill="url(#g)"/><text x="120" y="98" font-family="Tahoma" font-size="20" text-anchor="middle" fill="rgba(0,0,0,.55)">'+label+'</text></svg>';
   return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);}
 // ข้อมูลตัวอย่าง (สุ่มแบบคงที่)
@@ -167,7 +181,8 @@ const inMonth=r=>r.dateKey.slice(0,7)===month;
 function badge(s){return '<span class="badge '+({'รอตรวจ':'b-wait','ผ่าน':'b-ok','ไม่ผ่าน':'b-no','รอเอกสาร':'b-doc'}[s])+'">'+({'ผ่าน':'นับคะแนน','ไม่ผ่าน':'ไม่นับ'}[s]||s)+'</span>';}
 function techOpts(sel,all){return (all?'<option value="">ช่างทุกคน</option>':'')+'<optgroup label="กทม./ปริมณฑล">'+TECHS.filter(isBkk).map(t=>'<option value="'+esc(t.name)+'"'+(t.name===sel?' selected':'')+'>'+esc(t.name)+' ('+esc(nick(t))+')</option>').join('')+'</optgroup><optgroup label="ต่างจังหวัด">'+TECHS.filter(t=>!isBkk(t)).map(t=>'<option value="'+esc(t.name)+'"'+(t.name===sel?' selected':'')+'>'+esc(t.name)+' ('+esc(nick(t))+')</option>').join('')+'</optgroup>';}
 // ค่าจุด: นับ 1 จุด ต่อ ช่าง+วัน+รพ. ที่มีงาน (นับอัตโนมัติ ยกเว้น ไม่นับ) · เฉพาะช่าง กทม. และ รพ. ใน กทม.(75)/ปริมณฑล(100)
-function pointRows(name){const g={};RECS.filter(r=>r.tech===name&&inMonth(r)&&r.status==='ผ่าน').forEach(r=>{const k=r.dateKey+'|'+r.hospital;if(!g[k]){const rt=rateOf(r.hospital);if(rt)g[k]={dateKey:r.dateKey,hospital:r.hospital,rate:rt,recs:[]};}if(g[k])g[k].recs.push(r);});return Object.values(g).sort((a,b)=>a.dateKey<b.dateKey?-1:a.dateKey>b.dateKey?1:0);}   // recs = รายงานที่ใช้คิดจุดนั้น
+function pointRows(name){const g={};RECS.filter(r=>r.tech===name&&inMonth(r)&&r.status==='ผ่าน').forEach(r=>{const c=classify(r);if(c.k!=='pt')return;const k=r.dateKey+'|'+r.hospital;if(!g[k])g[k]={dateKey:r.dateKey,hospital:r.hospital,rate:c.rate,z:c.z,recs:[]};g[k].recs.push(r);});return Object.values(g).sort((a,b)=>a.dateKey<b.dateKey?-1:a.dateKey>b.dateKey?1:0);}   // recs = รายงานที่ใช้คิดจุดนั้น
+function perDiemRows(name){const g={};RECS.filter(r=>r.tech===name&&inMonth(r)&&r.status==='ผ่าน').forEach(r=>{const c=classify(r);if(c.k!=='pd')return;if(!g[r.dateKey])g[r.dateKey]={dateKey:r.dateKey,provs:[],recs:[]};const x=g[r.dateKey];if(x.provs.indexOf(c.prov)<0)x.provs.push(c.prov);x.recs.push(r);});return Object.values(g).sort((a,b)=>a.dateKey<b.dateKey?-1:1);}   // 1 วัน = 250 ไม่ว่าไปกี่ที่
 // ===== views =====
 function vOverview(){
   const m=RECS.filter(inMonth),wait=m.filter(r=>r.status==='รอตรวจ'||r.status==='รอเอกสาร').length,ok=m.filter(r=>r.status==='ผ่าน'),no=m.filter(r=>r.status==='ไม่ผ่าน').length;
@@ -261,24 +276,29 @@ function vScore(){
   document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='ทั้งหมด';go('rv');});
   document.querySelectorAll('[data-k1]').forEach(a=>a.onclick=e=>{e.preventDefault();e.stopPropagation();otAll=false;go('ot');});
 }
-function vPoint(){   // ค่าจุดรายเดือน แบบตรวจสอบได้ว่าคิดจากรายงานไหน
-  const bk=TECHS.filter(isBkk),mLbl=(document.getElementById('selMonth')||{}).selectedOptions?.[0]?.text||month;let tot=0,totA=0,totB=0;
-  const zoneTxt=h=>{const z=(window.ZONE_INFO||{})[h];return z?(z.p==='กทม'?'กทม.'+(z.a?' · '+z.a:''):z.p+(z.a?' · '+z.a:'')):'<span style="color:#B7791F">ไม่อยู่ในรายชื่อเขต → คิดแบบ กทม.</span>';};
+function vPoint(){   // ค่าจุด + เบี้ยเลี้ยง ตจว. รายเดือน แบบตรวจสอบได้ว่าคิดจากรายงานไหน
+  const bk=TECHS.filter(isBkk),mLbl=(document.getElementById('selMonth')||{}).selectedOptions?.[0]?.text||month;let tot=0,totA=0,totB=0,totD=0,totU=0;
+  const zoneTxt=(h,z)=>{z=z||zoneOf(h);if(!z)return '<span style="color:#B7791F">ไม่อยู่ในรายชื่อ</span>';return (z.p==='กทม'?'กทม.':z.p)+(z.a?' · '+z.a:'')+(z.fuzzy?'<div style="font-size:11px;color:#B7791F">จับคู่กับ "'+esc(z.name)+'"</div>':'');};
+  const job=r=>esc(r.code+' '+String(r.label||'').split(' — ')[0])+(r.desc?' <span style="color:var(--mut)">— '+esc(String(r.desc).slice(0,60))+'</span>':'');
   let h='<div class="filters noprint"><button class="btn" id="ptAll">📂 กาง/พับ ทุกคน</button><button class="btn pri" id="ptPrint">⬇ PDF / พิมพ์</button></div>'+
-    '<div class="note">🛵 <b>ค่าจุด เดือน '+esc(mLbl)+'</b> · 1 จุด = ช่าง 1 คน + 1 วัน + 1 สถานที่ ที่มีงาน (หลายงานที่เดียวกันวันเดียวกัน = 1 จุด) · กทม. 75 บาท · ปริมณฑล ('+PAR.join(' ')+') 100 บาท · ต่างจังหวัดไม่คิด · เข้าออฟฟิศ/บริษัทไม่คิด · งานที่กด ⛔ ไม่นับ ไม่คิด · เฉพาะช่าง กทม./ปริมณฑล</div>';
-  h+='<div class="box"><table class="ptsum"><tr><th>ช่าง</th><th class="n">จุด กทม. (75)</th><th class="n">จุด ปริมณฑล (100)</th><th class="n">รวม (บาท)</th></tr>';
+    '<div class="note">🛵 <b>ค่าจุด + เบี้ยเลี้ยง เดือน '+esc(mLbl)+'</b> (ช่าง กทม./ปริมณฑล) · <b>ค่าจุด</b> 1 จุด = 1 วัน + 1 สถานที่ ที่มีงาน (หลายงานที่เดียวกันวันเดียวกัน = 1 จุด) · กทม. 75 · ปริมณฑล ('+PAR.join(' ')+') 100 · <b>ไปต่างจังหวัด = เบี้ยเลี้ยง '+PD_AMT+' บาท/วัน</b> · เข้าออฟฟิศ/บริษัทไม่คิด · งานที่กด ⛔ ไม่นับ ไม่คิด · ชื่อสถานที่ที่ระบบหาเขตไม่เจอ = <b>รอตรวจ</b> (ยังไม่คิดเงิน)</div>';
+  h+='<div class="box"><table class="ptsum"><tr><th>ช่าง</th><th class="n">จุด กทม. (75)</th><th class="n">จุด ปริมณฑล (100)</th><th class="n">วัน ตจว. ('+PD_AMT+')</th><th class="n">รวม (บาท)</th><th class="n">รอตรวจ</th></tr>';
   const det=[];
-  bk.forEach(t=>{const p=pointRows(t.name),a=p.filter(x=>x.rate===75).length,b=p.filter(x=>x.rate===100).length,sm=a*75+b*100;tot+=sm;totA+=a;totB+=b;
-    const mine=RECS.filter(r=>r.tech===t.name&&inMonth(r));
-    const ex=[];mine.forEach(r=>{if(r.status==='ไม่ผ่าน')ex.push([r,'กด ⛔ ไม่นับ'+(r.reason?' ('+r.reason+')':'')]);else if(isOffice(r.hospital))ex.push([r,'เข้าออฟฟิศ — ไม่คิดค่าจุด']);else if(!rateOf(r.hospital))ex.push([r,'ต่างจังหวัด ('+(((window.ZONE_INFO||{})[r.hospital]||{}).p||'')+')']);});
-    h+='<tr class="click" data-pt="'+esc(t.name)+'"><td><b>'+esc(nick(t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(t.name)+'</span></td><td class="n">'+a+'</td><td class="n">'+b+'</td><td class="n"><b>'+sm.toLocaleString()+'</b></td></tr>';
-    let d='<div class="ptd hidden" id="pd-'+esc(t.name)+'"><h3 style="margin:14px 0 6px">'+esc(t.name)+' ('+esc(nick(t))+') · '+(a+b)+' จุด · ฿'+sm.toLocaleString()+'</h3>';
-    d+=p.length?'<table><tr><th style="width:4%">#</th><th style="width:11%">วันที่</th><th style="width:20%">สถานที่</th><th style="width:17%">เขต / จังหวัด</th><th>งานที่ทำ (คิดจากรายงานเหล่านี้)</th><th class="n" style="width:6%">รูป</th><th class="n" style="width:8%">ค่าจุด</th></tr>'+
-      p.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+thD(x.dateKey)+'</td><td>'+esc(x.hospital)+'</td><td>'+zoneTxt(x.hospital)+'</td><td>'+x.recs.map(r=>esc(r.code+' '+String(r.label||'').split(' — ')[0])+(r.desc?' <span style="color:var(--mut)">— '+esc(String(r.desc).slice(0,60))+'</span>':'')).join('<br>')+(x.recs.length>1?'<div style="font-size:11px;color:var(--mut)">'+x.recs.length+' งาน ที่เดียวกัน วันเดียวกัน = 1 จุด</div>':'')+'</td><td class="n">'+x.recs.reduce((s,r)=>s+(r.photos||[]).length,0)+'</td><td class="n"><b>'+x.rate+'</b></td></tr>').join('')+
-      '<tr><th colspan="6">รวม '+(a+b)+' จุด (กทม. '+a+' × 75 + ปริมณฑล '+b+' × 100)</th><th class="n">฿'+sm.toLocaleString()+'</th></tr></table>':'<div style="color:var(--mut)">— ไม่มีจุดในเดือนนี้ —</div>';
-    if(ex.length)d+='<div style="margin-top:8px;font-size:12.5px"><b>ไม่คิดค่าจุด ('+ex.length+' งาน)</b><br>'+ex.map(([r,why])=>thD(r.dateKey)+' · '+esc(r.hospital)+' · '+esc(r.code)+' — <span style="color:#B42318">'+esc(why)+'</span>').join('<br>')+'</div>';
+  bk.forEach(t=>{const p=pointRows(t.name),pd=perDiemRows(t.name),a=p.filter(x=>x.rate===75).length,b=p.filter(x=>x.rate===100).length,sm=a*75+b*100+pd.length*PD_AMT;tot+=sm;totA+=a;totB+=b;totD+=pd.length;
+    const mine=RECS.filter(r=>r.tech===t.name&&inMonth(r));const unk=mine.filter(r=>r.status==='ผ่าน'&&classify(r).k==='unk');totU+=unk.length;
+    const ex=[];mine.forEach(r=>{if(r.status==='ไม่ผ่าน')ex.push([r,'กด ⛔ ไม่นับ'+(r.reason?' ('+r.reason+')':'')]);else if(isOffice(r.hospital))ex.push([r,'เข้าออฟฟิศ — ไม่คิด']);});
+    h+='<tr class="click" data-pt="'+esc(t.name)+'"><td><b>'+esc(nick(t))+'</b> <span style="color:var(--mut);font-size:12px">'+esc(t.name)+'</span></td><td class="n">'+a+'</td><td class="n">'+b+'</td><td class="n">'+pd.length+'</td><td class="n"><b>'+sm.toLocaleString()+'</b></td><td class="n">'+(unk.length?'<span style="color:#B7791F;font-weight:700">'+unk.length+'</span>':'')+'</td></tr>';
+    let d='<div class="ptd hidden" id="pd-'+esc(t.name)+'"><h3 style="margin:14px 0 6px">'+esc(t.name)+' ('+esc(nick(t))+') · ค่าจุด '+(a+b)+' จุด · เบี้ยเลี้ยง '+pd.length+' วัน · รวม ฿'+sm.toLocaleString()+'</h3>';
+    d+=p.length?'<div style="font-weight:700;margin:6px 0 4px">🛵 ค่าจุด</div><table><tr><th style="width:4%">#</th><th style="width:11%">วันที่</th><th style="width:20%">สถานที่</th><th style="width:17%">เขต / จังหวัด</th><th>งานที่ทำ (คิดจากรายงานเหล่านี้)</th><th class="n" style="width:6%">รูป</th><th class="n" style="width:8%">ค่าจุด</th></tr>'+
+      p.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+thD(x.dateKey)+'</td><td>'+esc(x.hospital)+'</td><td>'+zoneTxt(x.hospital,x.z)+'</td><td>'+x.recs.map(job).join('<br>')+(x.recs.length>1?'<div style="font-size:11px;color:var(--mut)">'+x.recs.length+' งาน ที่เดียวกัน วันเดียวกัน = 1 จุด</div>':'')+'</td><td class="n">'+x.recs.reduce((s,r)=>s+(r.photos||[]).length,0)+'</td><td class="n"><b>'+x.rate+'</b></td></tr>').join('')+
+      '<tr><th colspan="6">ค่าจุด '+(a+b)+' จุด (กทม. '+a+' × 75 + ปริมณฑล '+b+' × 100)</th><th class="n">฿'+(a*75+b*100).toLocaleString()+'</th></tr></table>':'<div style="color:var(--mut)">— ไม่มีค่าจุดในเดือนนี้ —</div>';
+    if(pd.length)d+='<div style="font-weight:700;margin:12px 0 4px">🚐 เบี้ยเลี้ยงไปต่างจังหวัด ('+PD_AMT+' บาท/วัน)</div><table><tr><th style="width:4%">#</th><th style="width:11%">วันที่</th><th style="width:20%">จังหวัด</th><th>สถานที่ · งานที่ทำ (คิดจากรายงานเหล่านี้)</th><th class="n" style="width:6%">รูป</th><th class="n" style="width:8%">บาท</th></tr>'+
+      pd.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+thD(x.dateKey)+'</td><td>'+x.provs.map(esc).join(', ')+'</td><td>'+x.recs.map(r=>'<b>'+esc(r.hospital)+'</b> · '+job(r)).join('<br>')+'</td><td class="n">'+x.recs.reduce((s,r)=>s+(r.photos||[]).length,0)+'</td><td class="n"><b>'+PD_AMT+'</b></td></tr>').join('')+
+      '<tr><th colspan="5">เบี้ยเลี้ยง '+pd.length+' วัน × '+PD_AMT+'</th><th class="n">฿'+(pd.length*PD_AMT).toLocaleString()+'</th></tr></table>';
+    if(unk.length)d+='<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#FFF7E6;border:1px solid #F5D08A;font-size:12.5px"><b style="color:#B7791F">⚠️ รอตรวจ — ระบบหาเขตไม่เจอ ('+unk.length+' งาน · ยังไม่คิดเงิน)</b><br>'+unk.map(r=>thD(r.dateKey)+' · <b>'+esc(r.hospital)+'</b> · '+job(r)).join('<br>')+'<div style="color:#8a6d1a;margin-top:4px">แจ้งหนูว่าที่นี่อยู่จังหวัดอะไร จะเพิ่มเข้ารายชื่อให้ แล้วระบบคิดให้เอง</div></div>';
+    if(ex.length)d+='<div style="margin-top:8px;font-size:12.5px"><b>ไม่คิด ('+ex.length+' งาน)</b><br>'+ex.map(([r,why])=>thD(r.dateKey)+' · '+esc(r.hospital)+' · '+esc(r.code)+' — <span style="color:#B42318">'+esc(why)+'</span>').join('<br>')+'</div>';
     det.push(d+'</div>');});
-  h+='<tr><th>รวมทั้งเดือน</th><th class="n">'+totA+'</th><th class="n">'+totB+'</th><th class="n">฿'+tot.toLocaleString()+'</th></tr></table><div class="noprint" style="font-size:11.5px;color:var(--mut);margin-top:6px">แตะชื่อช่างเพื่อดูว่าแต่ละจุดคิดจากรายงานไหน</div>'+det.join('')+'</div>';
+  h+='<tr><th>รวมทั้งเดือน</th><th class="n">'+totA+'</th><th class="n">'+totB+'</th><th class="n">'+totD+'</th><th class="n">฿'+tot.toLocaleString()+'</th><th class="n">'+(totU||'')+'</th></tr></table><div class="noprint" style="font-size:11.5px;color:var(--mut);margin-top:6px">แตะชื่อช่างเพื่อดูว่าแต่ละรายการคิดจากรายงานไหน</div>'+det.join('')+'</div>';
   $('#view').innerHTML=h;
   document.querySelectorAll('[data-pt]').forEach(tr=>tr.onclick=()=>{const d=document.getElementById('pd-'+tr.dataset.pt);d.classList.toggle('hidden');if(!d.classList.contains('hidden'))d.scrollIntoView({block:'nearest'});});
   $('#ptAll').onclick=()=>{const ds=[...document.querySelectorAll('.ptd')],open=ds.some(d=>d.classList.contains('hidden'));ds.forEach(d=>d.classList.toggle('hidden',!open));};
@@ -310,7 +330,7 @@ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(b.dataset
 $('#logout').onclick=()=>{try{sessionStorage.removeItem('endo_dash')}catch(e){}location.reload();};
 const SYNC_URL=(window.APP_CONFIG&&window.APP_CONFIG.SYNC_URL)||'';let LIVE=false,liveAt=null;
 function loadLive(){if(!SYNC_URL||sampleOn())return;LIVE=false;demoBar();const n=new Date(),from=dk(new Date(n.getFullYear(),n.getMonth()-11,1));
-  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,ts:o.ts||o.savedAt,warn:mkWarn(o,o.dateKey),notes:o.notes||[]}));LIVE=true;kpBellPaint();liveAt=new Date();months();demoBar();go(tab);})
+  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,allow:o.allowanceType||'',area:o.area||'',ts:o.ts||o.savedAt,warn:mkWarn(o,o.dateKey),notes:o.notes||[]}));LIVE=true;kpBellPaint();liveAt=new Date();months();demoBar();go(tab);})
   .catch(()=>{$('#demoBar').innerHTML='⚠️ โหลดรายงานไม่สำเร็จ (เน็ต/ระบบ) · <a href="#" onclick="loadLive();return false">ลองใหม่</a>';});}
 const liveBar=()=>LIVE?'🟢 รายงานจริงจากแอปช่าง '+RECS.length+' รายการ · อัปเดต '+String(liveAt.getHours()).padStart(2,'0')+':'+String(liveAt.getMinutes()).padStart(2,'0')+' · <a href="#" onclick="loadLive();return false">โหลดใหม่</a> · <a href="#" id="sampleOn">ดูข้อมูลตัวอย่าง</a>'
   :'⏳ กำลังโหลดรายงานจากแอปช่าง...';
