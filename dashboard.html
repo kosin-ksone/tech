@@ -197,7 +197,7 @@ function vOverview(){
       return '<td class="n">'+(k>TODAY?'':(n?'<span class="chip '+(RECS.some(r=>r.tech===t.name&&r.dateKey===k&&r.lateDays)?'c-late':'c-ok')+'">'+n+'</span>':(dd===0||dd===6?'<span class="chip c-no">หยุด</span>':'<span class="chip c-off">–</span>')))+'</td>';}).join('')+
     (()=>{const tp=m.filter(r=>r.tech===t.name&&r.status==='ผ่าน').reduce((a,r)=>a+r.pt,0),tm=isBkk(t)?pointRows(t.name).reduce((a,x)=>a+x.rate,0):null;
       return '<td class="n"><b>'+(tp||'')+'</b></td><td class="n">'+(tm===null?'<span style="color:var(--mut);font-size:11px">ตจว.</span>':(tm?'฿'+tm.toLocaleString():''))+'</td>';})()+'</tr>';});
-  h+='</table><div style="font-size:11.5px;color:var(--mut);margin-top:6px">ตัวเลข = จำนวนงานที่ส่ง · – = ไม่มีรายงาน · คะแนน/ค่าจุด = เดือนที่เลือก นับอัตโนมัติทุกงานที่ส่ง (ยกเว้นที่กด ไม่นับ · ค่าจุดเฉพาะช่าง กทม.+ปริมณฑล) · แตะชื่อช่างเพื่อดูงานของคนนั้น</div></div>';
+  h+='</table><div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:2"><span class="chip c-ok">2</span> = ส่งตรงวัน · <span class="chip c-late">2</span> = ส่งสาย (ส่งย้อนหลัง หลังวันที่ทำงาน) · <span class="chip c-off">–</span> = ไม่มีรายงาน · <span class="chip c-no">หยุด</span> = เสาร์–อาทิตย์ · ตัวเลข = จำนวนงานที่ส่ง · คะแนน/ค่าจุด = เดือนที่เลือก นับอัตโนมัติทุกงานที่ส่ง (ยกเว้นที่กด ไม่นับ · ค่าจุดเฉพาะช่าง กทม.+ปริมณฑล) · แตะชื่อช่างเพื่อดูงานของคนนั้น</div></div>';
   $('#view').innerHTML=h;
   document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='ทั้งหมด';go('rv');});
 }
