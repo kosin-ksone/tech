@@ -150,7 +150,7 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
     fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:APP_ID,op:'note',id:r.id,text:t,by:'คุณโกสีห์ (KOSIE)',from:'kosie'})}).then(x=>x.json()).then(j=>{if(!j.ok)throw 0;r.notes=j.notes;o.remove();go(tab);}).catch(()=>{sb.disabled=false;sb.textContent='ส่ง';alert('ส่งไม่สำเร็จ ลองอีกครั้ง');});};});
 function kpBellPaint(){const b=document.getElementById('kpBell');if(!b)return;if(!KP){b.style.display='none';return;}let s='';try{s=localStorage.getItem('kp_seen_'+APP_ID)||''}catch(e){}
   const rs=[];RECS.forEach(r=>(r.notes||[]).forEach(n=>{if(n.from==='staff')rs.push({r:r,n:n});}));const c=rs.filter(x=>x.n.at>s).length;
-  b.style.display=RECS.some(r=>(r.notes||[]).length)?'':'none';b.innerHTML='🔔'+(c?'<i style="position:absolute;top:-6px;right:-6px;background:#E53935;color:#fff;font-style:normal;font-size:11px;font-weight:700;border-radius:10px;padding:1px 6px">'+c+'</i>':'');}
+  b.style.display=RECS.some(r=>(r.notes||[]).length)?'':'none';if(!document.getElementById('kpRingCss')){var kc=document.createElement('style');kc.id='kpRingCss';kc.textContent='@keyframes kpRing{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(-14deg)}20%,40%{transform:rotate(14deg)}}';document.head.appendChild(kc);}b.innerHTML='<span style="display:inline-block;transform-origin:50% 10%;'+(c?'animation:kpRing 1.6s ease-in-out infinite':'')+'">🔔</span>'+(c?'<i style="position:absolute;top:-6px;right:-6px;background:#E53935;color:#fff;font-style:normal;font-size:11px;font-weight:700;border-radius:10px;padding:1px 6px">'+c+'</i>':'');}
 function kpBellOpen(){let s='';try{s=localStorage.getItem('kp_seen_'+APP_ID)||''}catch(e){}const rs=[];RECS.forEach(r=>{const n=r.notes||[];if(n.length)rs.push({r:r,last:n[n.length-1]});});rs.sort((a,b)=>a.last.at<b.last.at?1:-1);
   let mx=s;rs.forEach(x=>(x.r.notes||[]).forEach(n=>{if(n.at>mx)mx=n.at;}));try{localStorage.setItem('kp_seen_'+APP_ID,mx)}catch(e){}
   const o=document.createElement('div');o.className='kpz';o.innerHTML='<div style="max-height:85vh;overflow:auto"><div style="display:flex;align-items:center;margin-bottom:8px"><b style="flex:1;font-size:17px">🔔 คำถามของ KOSIE และคำตอบ</b><button class="btn" data-x>✕</button></div>'+
@@ -225,7 +225,7 @@ function vReview(){
     const [sel,yes,cancel]=box.children;yes.onclick=()=>{set(b.dataset.no,'ไม่ผ่าน',sel.value);vReview();count();};cancel.onclick=vReview;});
   document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>{const m=loadRev();m[b.dataset.undo]={s:'รอตรวจ'};saveRev(m);postRev(b.dataset.undo,'รอตรวจ','');const r=RECS.find(x=>x.id===b.dataset.undo);r.status='รอตรวจ';r.reason='';r.by='';r.at='';vReview();count();});
   const oa=$('#okAll');if(oa)oa.onclick=()=>{list.filter(r=>r.status==='รอตรวจ').forEach(r=>set(r.id,'ผ่าน'));vReview();count();};
-  document.querySelectorAll('.rec .ph img').forEach(im=>im.onclick=()=>{const o=document.createElement('div');o.className='ov';o.innerHTML='<img src="'+im.src+'">';o.onclick=()=>o.remove();document.body.appendChild(o);});
+  document.querySelectorAll('.rec .ph img').forEach(im=>im.onclick=()=>{const all=[...im.parentNode.querySelectorAll('img')],rec=im.closest('.rec');openViewer(all.map(x=>x.src),all.indexOf(im),rec?(rec.querySelector('.r1,.nm,b')||{}).innerText||'':'');});   // ตัวดูรูปแบบ KOSIE (3 พ.ย. 69)
 }
 /* ===== งานอื่นๆ (K1 · ยังไม่มีคะแนน) — เก็บไว้ดูว่าใครทำอะไร จะได้เพิ่มเป็นรายการงาน + ให้คะแนนในอนาคต ===== */
 let otAll=false;
@@ -365,4 +365,65 @@ const KOSIE_H='d935041312d7ea4e6ecc8482eb389194ebfc551fbcef84725f4b80f9257f0dd1'
     if(h===KOSIE_H){REVIEWER='คุณโกสีห์ (KOSIE)';KP=true;try{sessionStorage.setItem('endo_dash','1');sessionStorage.setItem('kp','1')}catch(e){}enter();return;}}
   if(sessionStorage.getItem('endo_dash')==='1')enter();}catch(e){}})();
 </script>
+<!-- ===== ตัวดูรูปแบบ KOSIE (พี่ฝน 3 พ.ย. 69) · รูปเรียงต่อกันยาว เลื่อนดู · คลิก/แตะจุดไหนซูมจุดนั้น (สูงสุด 8 เท่า) · คลิกขวา/ปุ่ม ย่อกลับ · ใช้เหมือนกันทุกแอป+Dashboard ===== -->
+<style>
+.rv{position:fixed;inset:0;z-index:9999;background:#14171c;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;font-family:inherit}
+.rvh{position:sticky;top:0;z-index:2;background:#0B1F4D;color:#fff;display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:2px solid #C9A24A}
+.rvh b{flex:1;font-size:14px;line-height:1.35;min-width:0}
+.rvh button{flex:none;border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:10px;width:38px;height:38px;font-size:18px;cursor:pointer}
+.rvhelp{font-size:12px;color:#9aa4b2;text-align:center;padding:8px 14px 0}
+.rvl{max-width:1100px;margin:0 auto;padding:10px 12px 40px}
+.rvp{margin:0 0 16px;background:#1f242c;border-radius:10px;overflow:hidden}
+.rvb{overflow:hidden;cursor:zoom-in;touch-action:pan-x pan-y}
+.rvb.z{cursor:grab}.rvb.d{cursor:grabbing}
+.rvb img{display:block;width:100%;height:auto;min-height:120px;background:#2a3039;user-select:none;-webkit-user-drag:none}
+.rvc{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:12.5px;color:#9aa4b2}
+.rvc span{flex:1}
+.rvc button{border:1px solid #3a4250;background:#2a3039;color:#eef1f5;border-radius:8px;padding:4px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.rvc button[hidden]{display:none}
+</style>
+<script>
+(function(){
+  var MAX=8;
+  function big(u){ return String(u).replace(/sz=w\d+/,'sz=w2400').replace(/=w\d+$/,'=w2400'); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function close(){ var o=document.getElementById('rvOv'); if(!o) return; o.remove(); document.body.style.overflow=o.dataset.ovf||''; }
+  window.closeViewer=function(){ if(!document.getElementById('rvOv')) return; if(history.state&&history.state.rv) history.back(); else close(); };
+  window.addEventListener('popstate',function(e){ if(document.getElementById('rvOv')&&!(e.state&&e.state.rv)) close(); });
+  window.addEventListener('keydown',function(e){ if(e.key==='Escape'&&document.getElementById('rvOv')) closeViewer(); });
+  window.openViewer=function(list,idx,info){
+    list=(list||[]).filter(Boolean); if(!list.length) return; close();
+    var o=document.createElement('div'); o.className='rv'; o.id='rvOv'; o.dataset.ovf=document.body.style.overflow||'';
+    o.innerHTML='<div class="rvh"><b>'+esc(info||'รูปรายงาน')+' · '+list.length+' รูป</b><button type="button" aria-label="ปิด" class="rvx">✕</button></div>'
+      +'<div class="rvhelp">เลื่อนดูรูปถัดไป · คลิก/แตะจุดที่อยากดู = ซูมเข้าตรงนั้น (ซ้ำ = ซูมเพิ่ม) · ลากเพื่อเลื่อน · คลิกขวา = ย่อ</div><div class="rvl">'
+      +list.map(function(u,i){ return '<div class="rvp"><div class="rvb"><img alt="รูป '+(i+1)+'" referrerpolicy="no-referrer" src="'+esc(big(u))+'"></div><div class="rvc"><span>รูป '+(i+1)+' / '+list.length+' <b class="rvz"></b></span><button type="button" class="rvr" hidden>↺ ขนาดเดิม</button></div></div>'; }).join('')+'</div>';
+    document.body.appendChild(o); document.body.style.overflow='hidden';
+    try{ history.pushState(Object.assign({},history.state||{},{rv:1}),''); }catch(e){}
+    o.querySelector('.rvx').onclick=closeViewer;
+    var ps=o.querySelectorAll('.rvp'), moved=false; o.addEventListener('wheel',function(){moved=true;},{passive:true}); o.addEventListener('touchstart',function(){moved=true;},{passive:true});
+    var go=function(){ if(!moved&&ps[idx]) o.scrollTop=ps[idx].offsetTop-60; };
+    [].forEach.call(ps,function(p,i){ setup(o,p); if(i<idx) p.querySelector('img').addEventListener('load',go); });
+    setTimeout(go,30);
+  };
+  function setup(o,p){
+    var box=p.querySelector('.rvb'), img=box.querySelector('img'), z=1, down=null, drag=false, tmove=false;
+    function zoomTo(nz,cx,cy){
+      nz=Math.max(1,Math.min(MAX,nz)); if(nz===z) return;
+      var r=img.getBoundingClientRect(), fx=(cx-r.left)/r.width, fy=(cy-r.top)/r.height;
+      z=nz; img.style.width=(z*100)+'%';
+      var nr=img.getBoundingClientRect();
+      box.scrollLeft+=(nr.left+fx*nr.width)-cx; o.scrollTop+=(nr.top+fy*nr.height)-cy;
+      box.classList.toggle('z',z>1); p.querySelector('.rvr').hidden=z===1; p.querySelector('.rvz').textContent=z>1?'· ซูม '+z+' เท่า':'';
+    }
+    box.addEventListener('mousedown',function(e){ if(e.button) return; down={x:e.clientX,y:e.clientY,sl:box.scrollLeft,st:o.scrollTop}; drag=false; e.preventDefault(); });
+    o.addEventListener('mousemove',function(e){ if(!down) return; var dx=e.clientX-down.x, dy=e.clientY-down.y; if(!drag&&Math.abs(dx)+Math.abs(dy)<5) return; drag=true; box.classList.add('d'); if(z>1){ box.scrollLeft=down.sl-dx; o.scrollTop=down.st-dy; } });
+    o.addEventListener('mouseup',function(e){ if(!down) return; var was=drag; down=null; box.classList.remove('d'); if(!was&&e.button===0) zoomTo(z*2,e.clientX,e.clientY); });
+    box.addEventListener('contextmenu',function(e){ e.preventDefault(); zoomTo(z/2,e.clientX,e.clientY); });
+    p.querySelector('.rvr').onclick=function(){ var r=img.getBoundingClientRect(); zoomTo(1,r.left+r.width/2,Math.max(r.top,60)+10); o.scrollTop=p.offsetTop-60; };
+    box.addEventListener('touchmove',function(){ tmove=true; },{passive:true});
+    box.addEventListener('touchend',function(e){ if(tmove||e.changedTouches.length!==1){ tmove=false; return; } var t=e.changedTouches[0]; e.preventDefault(); zoomTo(z*2>MAX?1:z*2,t.clientX,t.clientY); });
+  }
+})();
+</script>
+
 </body></html>
