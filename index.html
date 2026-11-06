@@ -1311,7 +1311,7 @@ function printReport(kind,ws,day){
     '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}.hd{font-size:16px;font-weight:bold;margin:0 0 8px}'+
     'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #000;padding:5px;vertical-align:top;word-wrap:break-word}th{background:#eee}'+
     'td.off{text-align:center;color:#555}.pics img{width:23%;margin:1%;aspect-ratio:4/3;object-fit:cover;border-radius:2px}';   // 27 ต.ค. 69 KOSIE: ช่องรายละเอียดกว้าง แถวไม่ยาว · รูปเล็ก 4 รูป/แถว · แถวต่อหน้าได้ ไม่เว้นที่ว่าง
-  const w=window.open('','_blank');
+  const w=printWin();
   if(!w){showModal({icon:'⚠️',title:'เปิดหน้าดาวน์โหลดไม่ได้',body:'อนุญาตป๊อปอัปให้แอปก่อน แล้วกดใหม่อีกครั้งนะคะ',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]});return;}
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>รายงานการทำงาน '+esc(currentTech.name)+'</title><style>'+css+'</style></head><body>'+(mon?weekTableHtml(null,null,mon):weekTableHtml(ws,kind==='day'?day:null))+'</body></html>');
   w.document.close();setTimeout(()=>{try{w.focus();w.print();}catch(e){}},600);
@@ -1343,7 +1343,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.20 · 3 พ.ย. 69';
+const APP_VER='v2.21 · 6 พ.ย. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
@@ -1417,7 +1417,7 @@ function printPlan(sun){   // ฟอร์มแพลนเดิม (xlsx): �
     r1+='<th>'+dows[i]+'</th>';r2+='<th>'+dd.getDate()+'-'+mm[dd.getMonth()]+'-'+String(dd.getFullYear()%100).padStart(2,'0')+'</th>';r3+='<td></td>';
     rm+=c[0]?'<td>'+c[0]+'</td>':(off?'<td class="off">หยุด</td>':'<td></td>');
     ra+=c[1]?'<td>'+c[1]+'</td>':(off?'<td class="off">หยุด</td>':'<td></td>');}
-  var w=window.open('','_blank');
+  var w=printWin();
   if(!w){showModal({icon:'⚠️',title:'เปิดหน้าดาวน์โหลดไม่ได้',body:'อนุญาตป๊อปอัปให้แอปก่อน แล้วกดใหม่อีกครั้งนะคะ',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]});return;}
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>แพลนงาน '+esc(currentTech.name)+'</title><style>@page{size:A4 landscape;margin:12mm}body{font-family:Tahoma,"Leelawadee UI",Sarabun,sans-serif;font-size:13px;color:#000;margin:0}table.pl{border-collapse:collapse;width:100%;table-layout:fixed}.pl th,.pl td{border:1px solid #000;padding:6px 4px;text-align:center;vertical-align:middle;word-wrap:break-word;font-weight:400}.pl thead th{border-color:#bbb}.pl td.nm{background:#E7E6E6;text-align:left;padding-left:8px}.pl tr.sl td{height:110px}.pl td.off{background:#FFFF00}.bar{position:sticky;top:0;padding:8px;display:flex;gap:8px}.bar button{flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:14px}@media print{.bar{display:none}}</style></head><body>'
     +'<div class="bar" style="background:#5E3D29"><button onclick="window.print()" style="background:#8A5A3C;color:#fff;border:1px solid #E0B44C">⬇ บันทึกเป็น PDF / พิมพ์</button><button onclick="window.close()">ปิด</button></div>'
@@ -1464,9 +1464,9 @@ function xlsxPlan(name,cols,fname){
 }
 /* ===== โหลดรายงานเป็น Excel — ใช้ตารางเดียวกับ PDF (ฟอร์มเดิม 6 คอลัมน์ + รูป) ===== */
 function asExcel(run,fname){
-  var html='',o=window.open;
-  window.open=function(){return {document:{write:function(h){html+=h;},close:function(){}},focus:function(){},print:function(){},close:function(){}};};
-  try{run();}finally{window.open=o;}
+  var html='',o=window.open,o2=window.printWin;
+  window.open=window.printWin=function(){return {document:{write:function(h){html+=h;},close:function(){}},focus:function(){},print:function(){},close:function(){}};};   // ดัก printWin ด้วย (6 พ.ย. 69)
+  try{run();}finally{window.open=o;window.printWin=o2;}
   if(html)reportXlsx(html,fname);
 }
 function reportXlsx(html,fname){
@@ -1758,5 +1758,38 @@ if(SUBMIT_URL)refreshMaster();
 })();
 </script>
 
+<!-- ===== หน้า PDF ในแอป (พี่ฝน 6 พ.ย. 69 · บาสแจ้งกด PDF แล้วเด้ง) · ไม่เปิดแท็บใหม่ ===== -->
+<style>
+.pw{position:fixed;inset:0;z-index:9998;background:#fff;display:flex;flex-direction:column}
+.pwb{display:flex;gap:8px;align-items:center;padding:10px 12px;background:#0B1F4D;border-bottom:2px solid #C9A24A}
+.pwb button{border:0;border-radius:10px;padding:10px 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.pwb .pwp{flex:1;background:#C9A24A;color:#0B1F4D}.pwb .pwx{background:rgba(255,255,255,.18);color:#fff}
+.pw iframe{flex:1;border:0;width:100%;background:#fff}
+@keyframes pwbl{50%{opacity:.45}}.pwb .pwp.busy{animation:pwbl .8s infinite}
+</style>
+<script>
+(function(){
+  function ios(){ return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+  function pwClose(){ var o=document.getElementById('pwOv'); if(!o) return; o.remove(); document.body.style.overflow=o.dataset.ovf||''; }
+  window.addEventListener('popstate',function(e){ if(document.getElementById('pwOv')&&!(e.state&&e.state.pw)) pwClose(); });
+  function back(){ if(history.state&&history.state.pw) history.back(); else pwClose(); }
+  window.printWin=function(){
+    if(ios()) return window.open('','_blank');   // iPhone/iPad: แบบเดิม (พิมพ์จากกรอบในแอปไม่ได้)
+    pwClose();
+    var o=document.createElement('div'); o.className='pw'; o.id='pwOv'; o.dataset.ovf=document.body.style.overflow||'';
+    o.innerHTML='<div class="pwb"><button type="button" class="pwp">⬇ บันทึกเป็น PDF / พิมพ์</button><button type="button" class="pwx">✕ ปิด</button></div><iframe title="PDF"></iframe>';
+    document.body.appendChild(o); document.body.style.overflow='hidden';
+    try{ history.pushState(Object.assign({},history.state||{},{pw:1}),''); }catch(e){}
+    var f=o.querySelector('iframe'), d=f.contentWindow.document, pb=o.querySelector('.pwp');
+    function doPrint(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){} }
+    pb.onclick=doPrint; o.querySelector('.pwx').onclick=back;
+    d.open();
+    return {
+      document:{ write:function(s){ d.write(s); }, close:function(){ d.close(); try{ f.contentWindow.close=back; }catch(e){} } },
+      focus:function(){}, print:doPrint, close:back
+    };
+  };
+})();
+</script>
 </body>
 </html>
