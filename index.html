@@ -1343,7 +1343,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.21 · 6 พ.ย. 69';
+const APP_VER='v2.22 · 7 พ.ย. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
@@ -1758,35 +1758,51 @@ if(SUBMIT_URL)refreshMaster();
 })();
 </script>
 
-<!-- ===== หน้า PDF ในแอป (พี่ฝน 6 พ.ย. 69 · บาสแจ้งกด PDF แล้วเด้ง) · ไม่เปิดแท็บใหม่ ===== -->
+<!-- ===== หน้า PDF ในแอป (พี่ฝน 6-7 พ.ย. 69) · ไม่เปิดแท็บใหม่ · ปุ่ม PDF = หลังบ้านทำไฟล์ PDF ให้ (ใช้ได้ทุกมือถือ/ไลน์) · คอมกดพิมพ์ได้ด้วย ===== -->
 <style>
 .pw{position:fixed;inset:0;z-index:9998;background:#fff;display:flex;flex-direction:column}
-.pwb{display:flex;gap:8px;align-items:center;padding:10px 12px;background:#0B1F4D;border-bottom:2px solid #C9A24A}
-.pwb button{border:0;border-radius:10px;padding:10px 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
-.pwb .pwp{flex:1;background:#C9A24A;color:#0B1F4D}.pwb .pwx{background:rgba(255,255,255,.18);color:#fff}
+.pwb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;background:#0B1F4D;border-bottom:2px solid #C9A24A}
+.pwb button,.pwb a{border:0;border-radius:10px;padding:10px 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center}
+.pwb .pwp{flex:1;background:#C9A24A;color:#0B1F4D}.pwb .pwx,.pwb .pwq{background:rgba(255,255,255,.18);color:#fff}
+.pwb .pwo{flex-basis:100%;background:#1E7B4F;color:#fff}.pwm{flex-basis:100%;color:#fff;font-size:12.5px}
 .pw iframe{flex:1;border:0;width:100%;background:#fff}
-@keyframes pwbl{50%{opacity:.45}}.pwb .pwp.busy{animation:pwbl .8s infinite}
+@keyframes pwbl{50%{opacity:.45}}.pwb .busy{animation:pwbl .8s infinite}
 </style>
 <script>
 (function(){
-  function ios(){ return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+  var touch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
   function pwClose(){ var o=document.getElementById('pwOv'); if(!o) return; o.remove(); document.body.style.overflow=o.dataset.ovf||''; }
   window.addEventListener('popstate',function(e){ if(document.getElementById('pwOv')&&!(e.state&&e.state.pw)) pwClose(); });
   function back(){ if(history.state&&history.state.pw) history.back(); else pwClose(); }
   window.printWin=function(){
-    if(ios()) return window.open('','_blank');   // iPhone/iPad: แบบเดิม (พิมพ์จากกรอบในแอปไม่ได้)
     pwClose();
     var o=document.createElement('div'); o.className='pw'; o.id='pwOv'; o.dataset.ovf=document.body.style.overflow||'';
-    o.innerHTML='<div class="pwb"><button type="button" class="pwp">⬇ บันทึกเป็น PDF / พิมพ์</button><button type="button" class="pwx">✕ ปิด</button></div><iframe title="PDF"></iframe>';
+    o.innerHTML='<div class="pwb"><button type="button" class="pwp">⬇ บันทึกเป็นไฟล์ PDF</button>'+(touch?'':'<button type="button" class="pwq">🖨 พิมพ์</button>')+'<button type="button" class="pwx">✕ ปิด</button><div class="pwm" hidden></div></div><iframe title="PDF"></iframe>';
     document.body.appendChild(o); document.body.style.overflow='hidden';
     try{ history.pushState(Object.assign({},history.state||{},{pw:1}),''); }catch(e){}
-    var f=o.querySelector('iframe'), d=f.contentWindow.document, pb=o.querySelector('.pwp');
+    var f=o.querySelector('iframe'), d=f.contentWindow.document, pb=o.querySelector('.pwp'), msg=o.querySelector('.pwm'), html='';
     function doPrint(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){} }
-    pb.onclick=doPrint; o.querySelector('.pwx').onclick=back;
+    function makePdf(){
+      if(pb.disabled) return;
+      if(!window.SYNC_URL){ doPrint(); return; }
+      pb.disabled=true; pb.classList.add('busy'); pb.textContent='กำลังทำไฟล์ PDF… รอสักครู่'; msg.hidden=true;
+      var old=o.querySelector('.pwo'); if(old) old.remove();
+      var h=html.replace('</head>','<style>body,div,td,th,b,u,span{font-family:Tahoma,Arial,sans-serif!important}td,th{font-size:11px!important}.hd{font-size:13px!important}</style></head>');
+      var name=(d.title||'รายงาน').trim();
+      fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:/\/sales\//.test(location.pathname)?'sales':'tech',op:'pdf',name:name,html:h})})
+        .then(function(r){return r.json();}).then(function(j){
+          if(!j||!j.ok) throw 0;
+          var a=document.createElement('a'); a.className='pwo'; a.href=j.url; a.target='_blank'; a.rel='noopener'; a.textContent='📄 เปิดไฟล์ PDF (กดค้าง/ดาวน์โหลดเก็บได้)';
+          o.querySelector('.pwb').insertBefore(a,msg);
+          pb.textContent='⬇ ทำไฟล์ PDF ใหม่'; msg.hidden=false; msg.textContent='ไฟล์ PDF พร้อมแล้ว · กดปุ่มสีเขียวเพื่อเปิด/บันทึก · ส่งต่อทางไลน์/อีเมลได้';
+        }).catch(function(){ pb.textContent='⬇ ลองทำไฟล์ PDF อีกครั้ง'; msg.hidden=false; msg.textContent='ทำไฟล์ไม่สำเร็จ (เน็ต/ระบบ) ลองกดใหม่อีกครั้ง'; })
+        .then(function(){ pb.disabled=false; pb.classList.remove('busy'); });
+    }
+    pb.onclick=makePdf; o.querySelector('.pwx').onclick=back; var q=o.querySelector('.pwq'); if(q) q.onclick=doPrint;
     d.open();
     return {
-      document:{ write:function(s){ d.write(s); }, close:function(){ d.close(); try{ f.contentWindow.close=back; }catch(e){} } },
-      focus:function(){}, print:doPrint, close:back
+      document:{ write:function(s){ html+=s; d.write(s); }, close:function(){ d.close(); try{ f.contentWindow.close=back; }catch(e){} } },
+      focus:function(){}, print:function(){ if(!touch) doPrint(); }, close:back   // มือถือ: ไม่สั่งพิมพ์อัตโนมัติ (กดปุ่มทำไฟล์ PDF แทน)
     };
   };
 })();
