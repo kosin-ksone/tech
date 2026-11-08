@@ -140,6 +140,7 @@ function mkWarn(o,day){const w=[];(o.dupPh||[]).forEach(q=>w.push('📷 มี�
   const ds=(o.photoDates&&o.photoDates.length?o.photoDates:(o.photoMeta||[]).map(m=>m.taken)).filter(d=>d&&d!==day);
   if(ds.length)w.push('📅 วันที่ถ่ายรูป ('+[...new Set(ds)].map(thD).join(', ')+') ไม่ตรงวันรายงาน');
   else if([].concat(o.flags||[]).join(',').indexOf('รูปเก่า')>=0)w.push('📅 รูปถ่ายไว้ก่อนวันส่งรายงาน');
+  if(o.locWarn)w.push('📍 พิกัดในรูปห่างจาก "'+(o.hospital||'สถานที่ในรายงาน')+'" ประมาณ '+o.locWarn.km+' กม.'+(o.locWarn.by==='maps'?' (เทียบตำแหน่งจาก Google Maps)':' (เทียบกับรูปรายงานอื่นที่สถานที่นี้)'));
   return w;}
 const APP_ID='tech',WHO_LBL='ช่าง';
 function kpNotes(r){if(!KP)return '';const n=r.notes||[];return '<div class="kpn">'+n.map(x=>'<div class="'+(x.from==='staff'?'st':'ks')+'"><b>'+(x.from==='staff'?'↩ '+esc(x.by||'ตอบ'):x.from==='sales'?'💬 ผู้แทน '+esc(x.by||''):'💬 KOSIE')+'</b> <span>'+esc(new Date(x.at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+'</span><br>'+esc(x.t)+'</div>').join('')+'<button class="btn" data-note="'+esc(r.id)+'">💬 ถาม / แจ้ง'+WHO_LBL+'</button></div>';}
@@ -166,7 +167,7 @@ function kpPoll(){if(!KP||!LIVE||!SYNC_URL||sampleOn()||document.visibilityState
     let ch=false;RECS.forEach(r=>{const o=m[r.id];if(o&&JSON.stringify(o.notes||[])!==JSON.stringify(r.notes||[])){r.notes=o.notes||[];ch=true;}});
     if(ch){kpBellPaint();const y=scrollY;go(tab);scrollTo(0,y);}liveAt=new Date();}).catch(()=>{});}
 setInterval(kpPoll,60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(kpPoll,500);});
-function kpWarn(r){return KP&&r.warn&&r.warn.length?'<div class="kpw">⚠️ แจ้ง KOSIE<br>'+r.warn.map(esc).join('<br>')+'</div>':'';}
+function kpWarn(r){return KP&&r.warn&&r.warn.length?'<div class="kpw">🚩 ธงแจ้ง KOSIE<br>'+r.warn.map(esc).join('<br>')+(r.locAt?'<br><a href="https://www.google.com/maps?q='+r.locAt+'" target="_blank" rel="noopener" style="color:#B42318;font-weight:700">🗺 ดูจุดที่ถ่ายรูปบนแผนที่</a>':'')+'</div>':'';}   // 8 พ.ย. 69 ธง (รูปซ้ำ · พิกัด)
 let RECS=sampleOn()?buildDemo():[];
 function loadRev(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return{}}}
 function saveRev(m){try{localStorage.setItem(KEY,JSON.stringify(m))}catch(e){}}
@@ -202,9 +203,9 @@ function vOverview(){
   document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='ทั้งหมด';go('rv');});
 }
 function vReview(){
-  let list=RECS.filter(inMonth).filter(r=>!fTech||r.tech===fTech).filter(r=>fStat==='ทั้งหมด'||r.status===fStat||(fStat==='รอตรวจ'&&r.status==='รอเอกสาร'));
+  let list=RECS.filter(inMonth).filter(r=>!fTech||r.tech===fTech).filter(r=>fStat==='ทั้งหมด'||(fStat==='ธง'?r.warn&&r.warn.length:r.status===fStat)||(fStat==='รอตรวจ'&&r.status==='รอเอกสาร'));
   list.sort((a,b)=>a.dateKey<b.dateKey?1:a.dateKey>b.dateKey?-1:(a.tech<b.tech?-1:1));
-  let h='<div class="filters"><select id="fTech">'+techOpts(fTech,true)+'</select><div class="seg" id="fStat">'+['ทั้งหมด','ไม่ผ่าน'].map(s=>'<button class="'+(s===fStat?'on':'')+'" data-s="'+s+'">'+(s==='ไม่ผ่าน'?'ไม่นับ':s)+'</button>').join('')+'</div>'+
+  let h='<div class="filters"><select id="fTech">'+techOpts(fTech,true)+'</select><div class="seg" id="fStat">'+['ทั้งหมด','ไม่ผ่าน'].concat(KP?['ธง']:[]).map(s=>'<button class="'+(s===fStat?'on':'')+'" data-s="'+s+'">'+(s==='ไม่ผ่าน'?'ไม่นับ':s==='ธง'?'🚩 มีธง ('+RECS.filter(inMonth).filter(r=>(!fTech||r.tech===fTech)&&r.warn&&r.warn.length).length+')':s)+'</button>').join('')+'</div>'+
 '<span style="color:var(--mut);font-size:12px">'+list.length+' งาน</span></div>';
   h+='<div class="note">คะแนน และ ค่าจุด <b>นับอัตโนมัติ</b> ทุกงานที่ช่างส่ง ไม่ต้องมีคนตรวจ · ถ้าเจองานผิด กด ⛔ ไม่นับ ได้ (ไม่บังคับ)</div>';
   list.slice(0,150).forEach(r=>{const t=TECHS.find(x=>x.name===r.tech)||{name:r.tech||'-'};
@@ -356,7 +357,7 @@ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(b.dataset
 $('#logout').onclick=()=>{try{sessionStorage.removeItem('endo_dash')}catch(e){}location.reload();};
 const SYNC_URL=(window.APP_CONFIG&&window.APP_CONFIG.SYNC_URL)||'';let LIVE=false,liveAt=null;
 function loadLive(){if(!SYNC_URL||sampleOn())return;LIVE=false;demoBar();const n=new Date(),from=dk(new Date(n.getFullYear(),n.getMonth()-11,1));
-  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,allow:o.allowanceType||'',area:o.area||'',ts:o.ts||o.savedAt,warn:mkWarn(o,o.dateKey),notes:o.notes||[]}));LIVE=true;kpBellPaint();liveAt=new Date();months();demoBar();go(tab);})
+  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,allow:o.allowanceType||'',area:o.area||'',ts:o.ts||o.savedAt,warn:mkWarn(o,o.dateKey),locAt:o.locWarn?o.locWarn.at:'',notes:o.notes||[]}));LIVE=true;kpBellPaint();liveAt=new Date();months();demoBar();go(tab);})
   .catch(()=>{$('#demoBar').innerHTML='⚠️ โหลดรายงานไม่สำเร็จ (เน็ต/ระบบ) · <a href="#" onclick="loadLive();return false">ลองใหม่</a>';});}
 const liveBar=()=>LIVE?'🟢 รายงานจริงจากแอปช่าง '+RECS.length+' รายการ · อัปเดต '+String(liveAt.getHours()).padStart(2,'0')+':'+String(liveAt.getMinutes()).padStart(2,'0')+' · <a href="#" onclick="loadLive();return false">โหลดใหม่</a> · <a href="#" id="sampleOn">ดูข้อมูลตัวอย่าง</a>'
   :'⏳ กำลังโหลดรายงานจากแอปช่าง...';
