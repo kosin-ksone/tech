@@ -296,7 +296,7 @@
 </div>
 
 <script src="config.js"></script>
-<script src="data.js?v=240"></script>
+<script src="data.js?v=241"></script>
 <script src="zone.js"></script>
 <script>
 /* ค่าเริ่มต้นนี้ใช้เฉพาะก่อนซิงค์จาก Sheet เท่านั้น (โหมดทดลอง/ออฟไลน์)
@@ -523,6 +523,8 @@ function showModal(opt){
   });
 }
 
+/* 8 พ.ย. 69 แก้ชื่อช่าง ดารุฌ → ดารุฒ : เปลี่ยนชื่อเก่าที่จำไว้ในเครื่อง */
+(function(){try{['kosin_lasttech','kosin_reports','kosin_lasthos','kosin_techdev','kosin_newtech'].forEach(function(k){var v=localStorage.getItem(k);if(v&&v.indexOf('ดารุฌ')>=0)localStorage.setItem(k,v.split('ดารุฌ').join('ดารุฒ'));});var s=sessionStorage.getItem('kosin_session');if(s&&s.indexOf('ดารุฌ')>=0)sessionStorage.setItem('kosin_session',s.split('ดารุฌ').join('ดารุฒ'));}catch(e){}})();
 /* ===== LOGIN (dropdown ค้นหา/เลือกชื่อ + พิมพ์ชื่อใหม่เพื่อเพิ่ม) ===== */
 function techRegion(t){return t.region||'กทม./ปริมณฑล';}
 function techGroup(t){
@@ -1175,7 +1177,7 @@ function syncFlush(){ if(!SYNC_URL||syBusy) return; syBusy=true;
     var stop=function(e){ syBusy=false; syErr=!!e; syncBadge(); if(!e&&items.length) syPop('✅ ส่งเข้าระบบเรียบร้อย','รายงานเข้าระบบบริษัทแล้ว '+items.length+' รายการ<br>Dashboard เห็นแล้ว'); else if(e&&syManual) syPop('⚠️ ยังส่งไม่สำเร็จ','เช็กเน็ตแล้วกด ส่งตอนนี้ อีกครั้ง<br>(รายงานยังอยู่ในเครื่อง ไม่หาย)'); syManual=false; };
     var el=document.getElementById('syncInfo'), show=function(i){ if(el&&items.length) el.innerHTML='<span class="syBlink">⏳ กำลังส่งเข้าระบบ '+(i+1)+'/'+items.length+' … รอสักครู่ (รูปเยอะจะนานหน่อย)</span>'; };
     var step=function(i){ if(i>=items.length) return stop(); var it=items[i]; show(i);
-      fetch(SYNC_URL,{method:'POST',body:JSON.stringify(it),headers:{'Content-Type':'text/plain;charset=utf-8'}}).then(function(r){ return r.json(); }).then(function(j){
+      fetch(SYNC_URL,{method:'POST',body:JSON.stringify(it).split('ดารุฌ').join('ดารุฒ'),headers:{'Content-Type':'text/plain;charset=utf-8'}}).then(function(r){ return r.json(); }).then(function(j){
         if(j&&(j.ok||['notfound','app','op'].indexOf(j.err)>=0)){ var t=db.transaction('q','readwrite'); t.objectStore('q').delete(it.k); t.oncomplete=function(){ step(i+1); }; } else stop(1); }).catch(function(){ stop(1); }); };
     step(0); }); }).catch(function(){ syBusy=false; }); }
 /* ป๊อปอัปยืนยันส่งเข้าระบบ (บาสขอ 27 ต.ค. 69) */
@@ -1343,7 +1345,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.22 · 7 พ.ย. 69';
+const APP_VER='v2.23 · 8 พ.ย. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
