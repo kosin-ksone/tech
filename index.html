@@ -620,7 +620,7 @@ function myZoneHos(){const z=(window.ZONE_TECH||{})[currentTech&&currentTech.nam
 let _allHos=null;function allZoneHos(){if(!_allHos){const s={};Object.keys(window.ZONE_INFO||{}).forEach(h=>s[h]=1);Object.values(window.ZONE_TECH||{}).forEach(a=>a.forEach(h=>s[h]=1));_allHos=Object.keys(s).sort(new Intl.Collator('th').compare);}return _allHos;}
 function enterApp(){
   $('#scrLogin').classList.add('hidden');$('#scrOk').classList.add('hidden');$('#scrApp').classList.remove('hidden');
-  $('#who').innerHTML='<b>'+(currentTech.nick||currentTech.name.split(' ')[0])+'</b><br>'+(isTcj()?'ต่างจังหวัด':(currentTech.vehicle||'กทม.'));
+  $('#who').innerHTML='<b>'+esc(currentTech.name+(currentTech.nick?' ('+currentTech.nick+')':''))+'</b><br>'+(isTcj()?'ต่างจังหวัด':(currentTech.vehicle||'กทม.'));
   const dl=$('#hosList');dl.innerHTML='';const seen={};
   // ขึ้นเฉพาะ รพ. ในเขตตัวเอง (เขตการทำงาน rev122) · ไปเขตอื่นพิมพ์เอง
   const myZone=(window.ZONE_TECH||{})[currentTech.name];
@@ -1225,8 +1225,8 @@ function draftMail(){
   if(!currentTech) return;
   const ws=mineWeek||wkStart(todayKey()), recs=recsOfWeek(ws), n=recs.length, hos=new Set(recs.map(r=>r.dateKey+'|'+r.hospital)).size;
   const nk=currentTech.nick||currentTech.name.split(' ')[0], rng=weekLabel(ws);
-  const sub='รายงานช่าง · '+nk+' ('+currentTech.name+') · สัปดาห์ '+rng;
-  const body='เรียน คุณโกสีห์ (KOSIE) และทีม Work Report\n\nขอส่งรายงานการทำงานประจำสัปดาห์ '+rng+' ของ '+currentTech.name+' ('+nk+')'+(n?' รวม '+n+' งาน · '+hos+' สถานที่':'')+' ตามไฟล์แนบครับ\n\n'+currentTech.name+'\nENDOSCOPE & SERVICE';
+  const sub='รายงานช่าง · '+currentTech.name+' ('+nk+') · สัปดาห์ '+rng;
+  const body='เรียน คุณโกสีห์ (KOSIE) และทีม Work Report\n\nขอส่งรายงานการทำงานประจำสัปดาห์ '+rng+' ของ '+currentTech.name+' ('+nk+')'+(n?' รวม '+n+' งาน · '+hos+' สถานที่':'')+' ตามไฟล์แนบครับ\n\n'+currentTech.name+' ('+nk+')\nENDOSCOPE & SERVICE';
   location.href='mailto:'+MAIL_TO_TECH+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
   setTimeout(()=>showModal({icon:'📎',title:'อย่าลืมแนบไฟล์นะคะ',body:'แอปเมลเปิดพร้อมข้อความแล้ว — แนบ PDF รายงาน (กด ⬇ PDF ในหน้านี้ก่อน) แล้วกดส่งจากเมลของตัวเอง',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]}),800);
 }
@@ -1287,7 +1287,7 @@ function renderMine(){ syncStatus(); syncPull(); bellPull();
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function weekTableHtml(ws,only,mon){   // only = เฉพาะวันนั้น (โหลดรายวัน) · mon={y,m} = ทั้งเดือน
   const wm=mon?{month:mon.m,year:mon.y}:weekOfMonth(ws);
-  let h='<div class="pg"><div class="hd">'+(mon?'รายงานการทำงานประจำ':only?('รายงานการทำงานประจำวัน <u>&nbsp;วัน'+THAI_DOW[kd(only).getDay()]+'ที่ '+todayStr(kd(only))+'&nbsp;</u>'):('รายงานการทำงานสัปดาห์ที่ <u>&nbsp;'+wm.n+'&nbsp;</u>'))+' เดือน <u>&nbsp;'+TH_MONTH[wm.month]+' '+(wm.year+543)+'&nbsp;</u> &nbsp; ชื่อผู้ปฏิบัติงาน <u>&nbsp;'+esc(currentTech.name)+'&nbsp;</u></div>'+
+  let h='<div class="pg"><div class="hd">'+(mon?'รายงานการทำงานประจำ':only?('รายงานการทำงานประจำวัน <u>&nbsp;วัน'+THAI_DOW[kd(only).getDay()]+'ที่ '+todayStr(kd(only))+'&nbsp;</u>'):('รายงานการทำงานสัปดาห์ที่ <u>&nbsp;'+wm.n+'&nbsp;</u>'))+' เดือน <u>&nbsp;'+TH_MONTH[wm.month]+' '+(wm.year+543)+'&nbsp;</u> &nbsp; ชื่อผู้ปฏิบัติงาน <u>&nbsp;'+esc(currentTech.name+(currentTech.nick?' ('+currentTech.nick+')':''))+'&nbsp;</u></div>'+
     '<table><thead><tr><th style="width:9%">ประจำวัน</th><th style="width:12%">ทำที่ไหน</th><th style="width:12%">ทำอะไร</th><th style="width:33%">รายละเอียด</th><th style="width:12%">ปัญหาและแนวทางแก้ไข</th><th style="width:22%">ภาพประกอบ</th></tr></thead><tbody>';
   if(only)h=h.replace(/ เดือน <u>.*?<\/u>/,'');
   (mon?monthDays(mon.y,mon.m):weekDays(ws)).forEach(d=>{
@@ -1315,7 +1315,7 @@ function printReport(kind,ws,day){
     'td.off{text-align:center;color:#555}.pics img{width:23%;margin:1%;aspect-ratio:4/3;object-fit:cover;border-radius:2px}';   // 27 ต.ค. 69 KOSIE: ช่องรายละเอียดกว้าง แถวไม่ยาว · รูปเล็ก 4 รูป/แถว · แถวต่อหน้าได้ ไม่เว้นที่ว่าง
   const w=printWin();
   if(!w){showModal({icon:'⚠️',title:'เปิดหน้าดาวน์โหลดไม่ได้',body:'อนุญาตป๊อปอัปให้แอปก่อน แล้วกดใหม่อีกครั้งนะคะ',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]});return;}
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>รายงานการทำงาน '+esc(currentTech.name)+'</title><style>'+css+'</style></head><body>'+(mon?weekTableHtml(null,null,mon):weekTableHtml(ws,kind==='day'?day:null))+'</body></html>');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>รายงานการทำงาน '+esc(currentTech.name+(currentTech.nick?' ('+currentTech.nick+')':''))+'</title><style>'+css+'</style></head><body>'+(mon?weekTableHtml(null,null,mon):weekTableHtml(ws,kind==='day'?day:null))+'</body></html>');
   w.document.close();setTimeout(()=>{try{w.focus();w.print();}catch(e){}},600);
 }
 
@@ -1345,7 +1345,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.24 · 9 พ.ย. 69';
+const APP_VER='v2.25 · 12 พ.ย. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
@@ -1414,14 +1414,14 @@ function planOfDay(dk){const a=(loadPlans()[currentTech.name])||{};return (a[sun
 function printPlan(sun){   // ฟอร์มแพลนเดิม (xlsx): อาทิตย์–เสาร์ แนวนอน · เช้า/บ่าย · วันหยุดเหลือง
   var cellsOf=function(k){var p=planOfDay(k);return ['เช้า','บ่าย'].map(function(s){var e=p[s];return e&&e.hospital?esc(e.hospital)+(e.detail?'<br>'+esc(e.detail):''):'';});};
   var dows=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'],mm=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  var r1='<tr><th></th>',r2='<tr><th></th>',r3='<tr><td class="nm">'+esc(currentTech.name)+'</td>',rm='<tr class="sl"><td>เช้า</td>',ra='<tr class="sl"><td>บ่าย</td>';
+  var r1='<tr><th></th>',r2='<tr><th></th>',r3='<tr><td class="nm">'+esc(currentTech.name+(currentTech.nick?' ('+currentTech.nick+')':''))+'</td>',rm='<tr class="sl"><td>เช้า</td>',ra='<tr class="sl"><td>บ่าย</td>';
   for(var i=0;i<7;i++){var k=addDays(sun,i),dd=new Date(k+'T00:00:00'),c=cellsOf(k),off=function(k){return dayInfo(k).off;}(k);
     r1+='<th>'+dows[i]+'</th>';r2+='<th>'+dd.getDate()+'-'+mm[dd.getMonth()]+'-'+String(dd.getFullYear()%100).padStart(2,'0')+'</th>';r3+='<td></td>';
     rm+=c[0]?'<td>'+c[0]+'</td>':(off?'<td class="off">หยุด</td>':'<td></td>');
     ra+=c[1]?'<td>'+c[1]+'</td>':(off?'<td class="off">หยุด</td>':'<td></td>');}
   var w=printWin();
   if(!w){showModal({icon:'⚠️',title:'เปิดหน้าดาวน์โหลดไม่ได้',body:'อนุญาตป๊อปอัปให้แอปก่อน แล้วกดใหม่อีกครั้งนะคะ',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]});return;}
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>แพลนงาน '+esc(currentTech.name)+'</title><style>@page{size:A4 landscape;margin:12mm}body{font-family:Tahoma,"Leelawadee UI",Sarabun,sans-serif;font-size:13px;color:#000;margin:0}table.pl{border-collapse:collapse;width:100%;table-layout:fixed}.pl th,.pl td{border:1px solid #000;padding:6px 4px;text-align:center;vertical-align:middle;word-wrap:break-word;font-weight:400}.pl thead th{border-color:#bbb}.pl td.nm{background:#E7E6E6;text-align:left;padding-left:8px}.pl tr.sl td{height:110px}.pl td.off{background:#FFFF00}.bar{position:sticky;top:0;padding:8px;display:flex;gap:8px}.bar button{flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:14px}@media print{.bar{display:none}}</style></head><body>'
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>แพลนงาน '+esc(currentTech.name+(currentTech.nick?' ('+currentTech.nick+')':''))+'</title><style>@page{size:A4 landscape;margin:12mm}body{font-family:Tahoma,"Leelawadee UI",Sarabun,sans-serif;font-size:13px;color:#000;margin:0}table.pl{border-collapse:collapse;width:100%;table-layout:fixed}.pl th,.pl td{border:1px solid #000;padding:6px 4px;text-align:center;vertical-align:middle;word-wrap:break-word;font-weight:400}.pl thead th{border-color:#bbb}.pl td.nm{background:#E7E6E6;text-align:left;padding-left:8px}.pl tr.sl td{height:110px}.pl td.off{background:#FFFF00}.bar{position:sticky;top:0;padding:8px;display:flex;gap:8px}.bar button{flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:14px}@media print{.bar{display:none}}</style></head><body>'
     +'<div class="bar" style="background:#5E3D29"><button onclick="window.print()" style="background:#8A5A3C;color:#fff;border:1px solid #E0B44C">⬇ บันทึกเป็น PDF / พิมพ์</button><button onclick="window.close()">ปิด</button></div>'
     +'<div style="padding:10px"><table class="pl"><thead>'+r1+'</tr>'+r2+'</tr></thead><tbody>'+r3+'</tr>'+rm+'</tr>'+ra+'</tr></tbody></table></div></body></html>');
   w.document.close();setTimeout(function(){try{w.focus();w.print();}catch(e){}},600);
