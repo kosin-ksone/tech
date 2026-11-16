@@ -4,7 +4,7 @@
    + ใบกรอกไมล์ (ฟลีทการ์ด/เติมเอง/ทางด่วน…) + รูปหน้าปัดไมล์ → ระบบ (ธงให้บัญชีดูคนเดียว)
    ดึง รพ. + ค่าจุด + เบี้ยเลี้ยง จากรายงานช่างให้เอง · ลงพิกัดบ้านครั้งแรก · ข้อมูลเก็บในเครื่อง (kosin_tech_exp_*) + ไฟล์สำรอง */
 (function(){
-var EXP_VER='v1.2 · 16 พ.ย. 69';
+var EXP_VER='v1.3 · 16 พ.ย. 69';
 function gOn(){ return !isBkk(); }   // ช่าง กทม. ขี่มอเตอร์ไซค์ → กรอกระยะเอง ไม่ใช้ Google (ระยะรถยนต์ยาวกว่าจริง) · พี่ฝน 16 พ.ย. 69
 var me=null;
 function T(){ return window.currentTech||(typeof currentTech!=='undefined'?currentTech:null); }
@@ -35,7 +35,7 @@ function pvName(x){ x=String(x||'').trim(); return (x==='กทม'||x==='กท
 function prof(){ var p=LS(kProf(),null), t=T()||{}, mh=isBkk()?[]:((window.TCJ_HOME||{})[t.name]||[]).filter(function(x){ return x&&x!=='กทม'; });
   if(!p){ var v=String(t.vehicle||''); p={center:isBkk()?'กรุงเทพ':pvName(mh[0]||''),veh:/จักรยานยนต์|มอเตอร์/.test(v)?'M':'P',plate:''}; }
   if(!p.homes){ p.homes=(mh.length?mh.slice(0,2):['']).map(function(x){ return {name:x?'บ้าน'+pvName(x):'บ้าน',at:''}; }); }
-  while(p.homes.length<2) p.homes.push({name:'',at:''});
+  if(isBkk()) p.homes=p.homes.slice(0,1); else while(p.homes.length<2) p.homes.push({name:'',at:''});   // ช่าง กทม. บ้านจุดเดียว (พี่ฝน 16 พ.ย. 69) · ตจว. ได้ 2 ที่
   p.home=p.homes[0].name; return p; }   // ฐานบ้าน 2 ที่ (เซล ตจว.) · home = บ้านหลัก
 function homeNames(P){ return P.homes.map(function(h){return String(h.name||'').trim();}).filter(Boolean); }
 function isHome(x,P){ return homeNames(P).indexOf(String(x||'').trim())>-1; }
@@ -142,10 +142,10 @@ function needSetup(P){ return !P.setupDone && P.homes.some(function(h){ return S
 function parseLoc(s){ s=String(s||'').trim(); var m=s.match(/@(-?\d{1,2}\.\d+),\s*(-?\d{2,3}\.\d+)/)||s.match(/[?&](?:q|query|ll|destination)=(-?\d{1,2}\.\d+)(?:,|%2C)\s*(-?\d{2,3}\.\d+)/i)||s.match(/^(-?\d{1,2}\.\d+)\s*,\s*(-?\d{2,3}\.\d+)$/);
   return m?(+m[1]).toFixed(5)+','+(+m[2]).toFixed(5):s; }   // ลิงก์ Google Maps / lat,lng → พิกัด · ที่อยู่ → เก็บข้อความ (หลังบ้านหาพิกัดให้)
 function setupHtml(P){
-  var h='<div class="hero"><div class="t">ตั้งค่าครั้งแรก</div><div class="n">ลงทะเบียนพิกัดบ้าน</div><div class="s">ใช้หาระยะจากบ้านไป รพ./ออฟฟิศ ให้อัตโนมัติ · ทำครั้งเดียว · บ้านที่ 2 ไม่มีเว้นว่างได้</div></div>';
+  var h='<div class="hero"><div class="t">ตั้งค่าครั้งแรก</div><div class="n">ลงทะเบียนพิกัดบ้าน</div><div class="s">ใช้หาระยะจากบ้านไป รพ./ออฟฟิศ ให้อัตโนมัติ · ทำครั้งเดียว '+(isBkk()?'':' · บ้านที่ 2 ไม่มีเว้นว่างได้')+'</div></div>';
   P.homes.forEach(function(x,i){
     var ok=!!x.at, isCo=/^-?\d+\.\d+,-?\d+\.\d+$/.test(x.at||'');
-    h+='<div class="card"><div class="lbl"><span class="dot"></span>ฐานบ้านที่ '+(i+1)+(i?' <span style="font-weight:400;color:var(--mut)">(ถ้ามี)</span>':'')+(ok?' <span class="xtag ok" style="margin-left:auto">✓ บันทึกแล้ว</span>':'')+'</div>'
+    h+='<div class="card"><div class="lbl"><span class="dot"></span>'+(P.homes.length>1?'ฐานบ้านที่ '+(i+1):'บ้าน')+(i?' <span style="font-weight:400;color:var(--mut)">(ถ้ามี)</span>':'')+(ok?' <span class="xtag ok" style="margin-left:auto">✓ บันทึกแล้ว</span>':'')+'</div>'
       +'<input class="field" value="'+E(x.name)+'" placeholder="ชื่อ เช่น บ้าน หรือ บ้านขอนแก่น" onchange="expHome('+i+',this.value)">'
       +'<button class="send navy" style="margin-top:10px" onclick="expHomeGps(this,'+i+')">📍 ตอนนี้อยู่ที่บ้านนี้ · ใช้ตำแหน่งตอนนี้</button>'
       +'<div style="text-align:center;font-size:12px;color:var(--mut);margin:8px 0 6px">หรือ ถ้าไม่ได้อยู่ที่บ้านนี้</div>'
@@ -182,7 +182,7 @@ function profHtml(P){
    +'<div class="xrow"><span style="width:86px">Center</span><input style="flex:1" value="'+E(P.center)+'" onchange="expProf(\'center\',this.value)" placeholder="จังหวัด center เช่น กรุงเทพ"></div>'
    +'<div class="xrow"><span style="width:86px">พาหนะหลัก</span><select style="flex:1" onchange="expProf(\'veh\',this.value)">'+Object.keys(VEH).map(function(k){return '<option value="'+k+'"'+(P.veh===k?' selected':'')+'>'+VEH[k]+'</option>';}).join('')+'</select></div>'
    +'<div class="xrow"><span style="width:86px">ทะเบียนรถ</span><input style="flex:1" value="'+E(P.plate)+'" onchange="expProf(\'plate\',this.value)" placeholder="เช่น 9 กท 4554"></div>'
-   +P.homes.map(function(h,i){ return '<div class="xrow"><span style="width:86px">ฐานบ้าน '+(i+1)+'</span><input style="flex:1" value="'+E(h.name)+'" onchange="expHome('+i+',this.value)" placeholder="'+(i?'บ้านที่ 2 (ถ้ามี)':'บ้าน')+'"><button class="xmini" onclick="expHomeGps(this,'+i+')">📍 '+(h.at?'ตั้งแล้ว':'ตั้งพิกัด')+'</button></div>'; }).join('')
+   +P.homes.map(function(h,i){ return '<div class="xrow"><span style="width:86px">'+(P.homes.length>1?'ฐานบ้าน '+(i+1):'บ้าน')+'</span><input style="flex:1" value="'+E(h.name)+'" onchange="expHome('+i+',this.value)" placeholder="'+(i?'บ้านที่ 2 (ถ้ามี)':'บ้าน')+'"><button class="xmini" onclick="expHomeGps(this,'+i+')">📍 '+(h.at?'ตั้งแล้ว':'ตั้งพิกัด')+'</button></div>'; }).join('')
    +'<div style="font-size:11px;color:var(--mut);margin-top:6px">📍 กดตอนอยู่ที่บ้านนั้น 1 ครั้ง ระบบจะหาระยะจากบ้านไป รพ./ออฟฟิศ ให้เอง</div></div>';
 }
 function tripHtml(P){
