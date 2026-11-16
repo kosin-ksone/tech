@@ -4,7 +4,8 @@
    + ใบกรอกไมล์ (ฟลีทการ์ด/เติมเอง/ทางด่วน…) + รูปหน้าปัดไมล์ → ระบบ (ธงให้บัญชีดูคนเดียว)
    ดึง รพ. + ค่าจุด + เบี้ยเลี้ยง จากรายงานช่างให้เอง · ลงพิกัดบ้านครั้งแรก · ข้อมูลเก็บในเครื่อง (kosin_tech_exp_*) + ไฟล์สำรอง */
 (function(){
-var EXP_VER='v1.1 · 16 พ.ย. 69';
+var EXP_VER='v1.2 · 16 พ.ย. 69';
+function gOn(){ return !isBkk(); }   // ช่าง กทม. ขี่มอเตอร์ไซค์ → กรอกระยะเอง ไม่ใช้ Google (ระยะรถยนต์ยาวกว่าจริง) · พี่ฝน 16 พ.ย. 69
 var me=null;
 function T(){ return window.currentTech||(typeof currentTech!=='undefined'?currentTech:null); }
 function isBkk(){ var t=T(); return !t||(t.region||'กทม./ปริมณฑล')==='กทม./ปริมณฑล'; }
@@ -188,8 +189,9 @@ function tripHtml(P){
   var h=heroTrip()+profHtml(P), n=daysIn(expYM);
   var miss=missLegs().length;
   h+='<div class="card" style="background:var(--accent-bg);border-color:#BcD6F0"><div style="font-size:12.5px;color:var(--brand);margin-bottom:8px">ระบบดึง รพ. ค่าจุด และเบี้ยเลี้ยง จากรายงานให้แล้ว · ช่องสีแดง = ยังไม่มีระยะ (กม.)</div>'
-    +(miss?'<button class="send navy" id="xAllBtn" onclick="expSugAll()">≈ หาระยะทางทั้งเดือนให้อัตโนมัติ ('+miss+' ช่วง)</button>':'<div style="font-weight:700;color:var(--ok)">✓ กรอกระยะครบทุกช่วงแล้ว</div>')
-    +'<div style="font-size:11px;color:var(--mut);margin-top:6px">ระยะจาก Google Maps เป็นค่าประมาณ แก้ตัวเลขได้ทุกช่อง · เส้นทางที่เคยกรอก ระบบจำไว้ให้เดือนหน้า</div></div>';
+    +(!gOn()?(miss?'<div style="font-weight:700;color:var(--danger)">ยังไม่กรอกระยะ '+miss+' ช่วง · พิมพ์ระยะ (กม.) ที่ขับจริง</div>':'<div style="font-weight:700;color:var(--ok)">✓ กรอกระยะครบทุกช่วงแล้ว</div>')
+     :(miss?'<button class="send navy" id="xAllBtn" onclick="expSugAll()">≈ หาระยะทางทั้งเดือนให้อัตโนมัติ ('+miss+' ช่วง)</button>':'<div style="font-weight:700;color:var(--ok)">✓ กรอกระยะครบทุกช่วงแล้ว</div>'))
+    +'<div style="font-size:11px;color:var(--mut);margin-top:6px">'+(gOn()?'ระยะจาก Google Maps เป็นค่าประมาณ แก้ตัวเลขได้ทุกช่อง · ':'')+'เส้นทางที่เคยกรอก ระบบจำไว้ให้ครั้งหน้า (เช่น บ้าน → ออฟฟิศ กรอกครั้งเดียว)</div></div>';
   for(var i=1;i<=n;i++) h+=dayHtml(dstr(expYM,i),P);
   return h;
 }
@@ -210,7 +212,7 @@ function dayHtml(k,P){
       +'<input class="km'+(need?' need':'')+'" inputmode="decimal" value="'+E(l.km)+'" placeholder="กม." oninput="expKm(\''+k+'\','+i+',this)" onchange="expKmDone(\''+k+'\','+i+')">'
       +(isBkk()?'<select class="pt" title="ค่าจุด" onchange="expLeg(\''+k+'\','+i+',\'pt\',this.value)">'+[['','จุด –'],['75','75'],['100','100']].map(function(o){ return '<option value="'+o[0]+'"'+(String(l.pt||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select>':'')
       +'<button class="x" onclick="expRmLeg(\''+k+'\','+i+')">×</button></div>'
-      +(need&&from&&l.to?'<div class="xpv"><button class="xsug" data-k="'+k+'" data-i="'+i+'" onclick="expSug(this)">≈ หาระยะจาก Google Maps</button></div>':'')
+      +(gOn()&&need&&from&&l.to?'<div class="xpv"><button class="xsug" data-k="'+k+'" data-i="'+i+'" onclick="expSug(this)">≈ หาระยะจาก Google Maps</button></div>':'')
       +(pv?'<div class="xpv'+(out?' out':'')+'">'+(pv==='ปริมณฑล'?'':'จ.')+E(pv)+(out?' · นอกเขต center':'')+'</div>':'');
     from=l.to;
   });
