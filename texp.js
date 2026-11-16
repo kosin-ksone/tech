@@ -4,7 +4,7 @@
    + ใบกรอกไมล์ (ฟลีทการ์ด/เติมเอง/ทางด่วน…) + รูปหน้าปัดไมล์ → ระบบ (ธงให้บัญชีดูคนเดียว)
    ดึง รพ. + ค่าจุด + เบี้ยเลี้ยง จากรายงานช่างให้เอง · ลงพิกัดบ้านครั้งแรก · ข้อมูลเก็บในเครื่อง (kosin_tech_exp_*) + ไฟล์สำรอง */
 (function(){
-var EXP_VER='v1.0 · 16 พ.ย. 69';
+var EXP_VER='v1.1 · 16 พ.ย. 69';
 var me=null;
 function T(){ return window.currentTech||(typeof currentTech!=='undefined'?currentTech:null); }
 function isBkk(){ var t=T(); return !t||(t.region||'กทม./ปริมณฑล')==='กทม./ปริมณฑล'; }
@@ -243,7 +243,7 @@ window.expAddTrip=function(k){ var d=touch(k), P=prof(); d.start=d.start||prevEn
 window.expClearDay=function(k){ modal('ล้างข้อมูลวันนี้?','ระบบจะดึงสถานที่จากรายงานมาใหม่',[{label:'ล้าง',cls:'',val:1},{label:'ยกเลิก',cls:'ghost',val:0}]).then(function(v){ if(!v) return; delete st.days[k]; save(); render(); }); };
 window.expHomeGps=function(b,hi){ hi=hi||0; if(!navigator.geolocation){ toast('เครื่องนี้หาตำแหน่งไม่ได้'); return; } b.classList.add('xbusy'); b.textContent='📍 กำลังหา…';
   navigator.geolocation.getCurrentPosition(function(p){ var P=prof(); P.homes[hi].at=p.coords.latitude.toFixed(5)+','+p.coords.longitude.toFixed(5); saveProf(P); toast('ตั้งพิกัด '+(P.homes[hi].name||'บ้าน')+' แล้ว'); render(); },function(){ b.classList.remove('xbusy'); b.textContent='📍 ตั้งพิกัด'; toast('เปิดสิทธิ์ตำแหน่งก่อนนะคะ'); },{enableHighAccuracy:true,timeout:15000}); };
-var OFFICE_AT={};   // พิกัดออฟฟิศ (lat,lng) — รอพี่ฝนส่งตำแหน่งจริง · ยังไม่มี = Google หาจากชื่อ (ได้ 0 กม. → ให้กรอกเอง)
+var OFFICE_AT={'ออฟฟิศ กทม.':'อาคารมโนรม ถนนพระรามที่ 4 แขวงคลองตัน เขตคลองเตย กรุงเทพมหานคร 10110'};   // บริษัท 3366/13-14 พระราม 4 (หลังอาคารมโนรม) · พี่ฝน 16 พ.ย. 69
 function where(name){ var P=prof(), a=homeAt(name,P); return a||OFFICE_AT[String(name||'').trim()]||name; }
 window.expSug=function(b){ var k=b.dataset.k, i=+b.dataset.i, d=day(k), l=d.legs[i], fr=i?d.legs[i-1].to:d.start, P=prof();
   if(!window.SYNC_URL){ toast('ยังไม่ได้เชื่อมระบบ'); return; }
