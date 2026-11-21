@@ -582,8 +582,13 @@ function getReports(){try{return JSON.parse(localStorage.getItem('kosin_reports'
 function saveReports(a){
   // เก็บรูปย่อไว้ในเครื่องแค่ 15 วันล่าสุด กันพื้นที่เต็ม (เท่ากับแอปเซล)
   const cut=dkey(new Date(Date.now()-15*86400000));a.forEach(r=>{if(r.thumbs&&r.dateKey<cut)delete r.thumbs;});
-  try{localStorage.setItem('kosin_reports',JSON.stringify(a));}
-  catch(e){a.forEach(r=>{if(r.thumbs&&r.dateKey<dkey(new Date(Date.now()-10*86400000)))delete r.thumbs;});localStorage.setItem('kosin_reports',JSON.stringify(a));}
+  // 21 พ.ย. 69 เครื่องเต็ม → ลบรูปย่อเก่าสุดทีละรายการจนบันทึกได้ (เหมือนแอปเซล) · บันทึกไม่ได้จริงก็ไม่ค้าง รายงานยังส่งเข้าระบบ
+  for(let t=0;t<400;t++){
+    try{localStorage.setItem('kosin_reports',JSON.stringify(a));return true;}
+    catch(e){const old=a.filter(r=>r.thumbs&&r.thumbs.length).sort((x,y)=>String(x.dateKey)<String(y.dateKey)?-1:1)[0];if(!old)break;delete old.thumbs;}
+  }
+  try{localStorage.removeItem('kosin_hashes');localStorage.setItem('kosin_reports',JSON.stringify(a));return true;}catch(e){}
+  return false;
 }
 function myRecs(){return getReports().filter(r=>r.tech===currentTech.name);}
 
@@ -958,7 +963,7 @@ async function doSubmit(silent){
       photoCount:s.photos.length,photoDates:[...new Set(s.photos.map(p=>p.taken).filter(Boolean))],thumbs:thumbsBy[s.code]||[],photoGps:pGps?(pGps.lat+', '+pGps.lng):'',flags:Object.keys(pf),status:defer?'รอเอกสาร':'รอตรวจ',docDeadline:deadline,ts:now.toISOString()});
   });
   const all=getReports();recs.forEach(r=>all.push(r));saveReports(all);
-  const hs=submittedHashes();sel.forEach(s=>s.photos.forEach(p=>hs.push(p.hash)));localStorage.setItem('kosin_hashes',JSON.stringify(hs));
+  try{const hs=submittedHashes();sel.forEach(s=>s.photos.forEach(p=>hs.push(p.hash)));localStorage.setItem('kosin_hashes',JSON.stringify(hs.slice(-3000)));}catch(e){}   // เครื่องเต็มไม่ให้ค้าง
   learnCoords(hname,photoGps[0]);
   sel.forEach((s,i)=>syncPush({op:'upsert',rec:recs[i],photos:{add:s.photos.map(p=>p.data)}}));
   if(SUBMIT_URL)sel.forEach((s,i)=>{fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify(Object.assign({},recs[i],{photos:s.photos.map(p=>p.data)}))}).catch(()=>{});});
@@ -1020,7 +1025,7 @@ async function submitDay(){
   if(all.length)showOk(all,null,getReports());
 }
 $('#sendBtn').onclick=()=>{
-  if($('#sendBtn').dataset.ok){submitDay();return;}
+  if($('#sendBtn').dataset.ok){submitDay().catch(e=>{try{recalc();}catch(_){}showModal({icon:'⚠️',iconBg:'var(--danger-bg)',iconFg:'var(--danger)',title:'บันทึกไม่สำเร็จ',body:'ลองกดบันทึกอีกครั้ง ถ้ายังไม่ได้ แคปหน้าจอนี้ส่งพี่ฝน<br><small>'+esc(String(e&&e.message||e))+'</small>',buttons:[{label:'รับทราบ',val:'ok',cls:'pri'}]});});return;}   // 21 พ.ย. 69 ไม่ให้ค้างเงียบ
   // ยังไม่ครบ → พาไปช่องที่ขาด
   const sel=Object.values(selected);let el=null;
   if(!$('#hosInput').value.trim())el=$('#hosInput');
@@ -1347,7 +1352,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.27 · 21 พ.ย. 69';
+const APP_VER='v2.28 · 21 พ.ย. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
