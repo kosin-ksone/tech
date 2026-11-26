@@ -102,7 +102,7 @@ const isBkk=t=>(t.region||'กทม./ปริมณฑล')!=='ต่างจ
 const nick=t=>t.nick||t.name.split(' ')[0];
 function dnT(t){return t?t.name+(t.nick?' ('+t.nick+')':''):'';}   /* 12 พ.ย. 69 ชื่อ นามสกุล (ชื่อเล่น) — แสดงอย่างเดียว */
 function dnN(n){const t=TECHS.find(x=>x.name===n);return t?dnT(t):n;}
-const isOffice=h=>/^\s*(ออฟฟิศ|ออฟฟิส|บริษัท|สำนักงาน|office|kosin)/i.test(String(h||''));   // เข้าออฟฟิศ = ไม่คิดค่าจุด (พี่ฝน 29 ต.ค. 69)
+const isOffice=h=>/^\s*(ออฟฟิศ|ออฟฟิส|สำนักงาน|office|kosin|โคสิน)/i.test(String(h||''))||/^\s*(บริษัท|-)?\s*$/.test(String(h||''));   // เข้าออฟฟิศ = ไม่คิดค่าจุด (พี่ฝน 29 ต.ค. 69)
 let PD_AMT=250;   // ค่าตั้งต้น · ใช้จริงตามกฎในชีต ENDO (PDA)
 /* 26 พ.ย. 69 พี่ฝน: กฎค่าจุดอ่านจากชีต ENDO (?op=endorules) · ENDO แก้เอง · คอลัมน์ "มีผลตั้งแต่" = งานตั้งแต่วันนั้นคิดค่าใหม่ · ไม่มีชีต/โหลดไม่ได้ = ค่าตั้งต้นเดิม */
 let RULES=null;
