@@ -72,7 +72,7 @@ body.ro [data-ok],body.ro [data-no],body.ro [data-undo]{display:none!important}@
   </div>
   <div class="demo" id="demoBar"></div>
   <div class="tabs" id="tabs">
-    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">📋 ดูรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด ช่าง กทม.</button><button data-t="tj">🚐 เบี้ยเลี้ยง ช่าง ตจว.</button><button data-t="pl">📅 แพลนช่าง</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
+    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">📋 ดูรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด ช่าง กทม.</button><button data-t="tj">🚐 เบี้ยเลี้ยง ช่าง ตจว.</button><button data-t="fl">🚩 ธง พิกัด/รูปซ้ำ</button><button data-t="pl">📅 แพลนช่าง</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
   </div>
   <div class="wrap" id="view"></div>
 </div>
@@ -356,6 +356,26 @@ function vPoint(){   // ค่าจุด + เบี้ยเลี้ยง �
   $('#ptAll').onclick=()=>{const ds=[...document.querySelectorAll('.ptd')],open=ds.some(d=>d.classList.contains('hidden'));ds.forEach(d=>d.classList.toggle('hidden',!open));};
   $('#ptPrint').onclick=()=>{document.querySelectorAll('.ptd').forEach(d=>d.classList.remove('hidden'));setTimeout(()=>window.print(),200);};
 }
+function vFlag(){   /* 27 พ.ย. 69 พี่ฝน: สถิติธง พิกัดไม่ตรง / รูปซ้ำ / วันที่ถ่ายไม่ตรง รายช่าง กดดูรายวัน */
+  const mLbl=(document.getElementById('selMonth')||{}).selectedOptions?.[0]?.text||month;
+  const base=RECS.filter(inMonth).filter(r=>r.warn&&r.warn.length),c=(rs,k)=>rs.filter(r=>r.warn.some(w=>w.indexOf(k)===0)).length;
+  const by={};base.forEach(r=>{(by[r.tech]||(by[r.tech]=[])).push(r);});
+  const names=Object.keys(by).sort((a,b)=>by[b].length-by[a].length);
+  let h='<div class="filters noprint"><button class="btn" id="ptAll">📂 กาง/พับ ทุกคน</button><button class="btn pri" id="ptPrint">⬇ PDF / พิมพ์</button></div>';
+  h+='<div class="kpw" style="font-size:13px;margin:0 0 12px">🚩 <b>ธงเดือน '+esc(mLbl)+'</b> · ระบบตรวจเจอ <b>'+base.length+'</b> รายงาน · 📍 พิกัดไม่ตรง <b>'+c(base,'📍')+'</b> · 📷 รูปซ้ำ <b>'+c(base,'📷')+'</b> · 📅 วันที่ถ่ายรูปไม่ตรง <b>'+c(base,'📅')+'</b><div style="font-size:11.5px;color:#7a2a20;margin-top:4px">แตะชื่อช่างเพื่อดูวันที่ สถานที่ และรายละเอียดธง · ธงเป็นข้อสังเกตจากระบบ ไม่ได้ตัดคะแนน/ค่าจุดอัตโนมัติ</div></div>';
+  h+='<div class="box"><table class="ptsum"><tr><th>ช่าง</th><th class="n">📍 พิกัดไม่ตรง</th><th class="n">📷 รูปซ้ำ</th><th class="n">📅 วันที่ถ่ายไม่ตรง</th><th class="n">รวม (รายงาน)</th></tr>';
+  const det=[];
+  names.forEach(n=>{const rs=by[n].slice().sort((a,b)=>a.dateKey<b.dateKey?-1:1),t=TECHS_ALL.find(x=>x.name===n)||{name:n};
+    h+='<tr class="click" data-pt="F'+esc(n)+'"><td><b>'+esc(dnT(t))+'</b></td><td class="n">'+(c(rs,'📍')||'')+'</td><td class="n">'+(c(rs,'📷')||'')+'</td><td class="n">'+(c(rs,'📅')||'')+'</td><td class="n"><b>'+rs.length+'</b></td></tr>';
+    det.push('<div class="ptd hidden" id="pd-F'+esc(n)+'"><h3 style="margin:14px 0 6px">🚩 '+esc(dnT(t))+' · '+rs.length+' รายงาน</h3><table><tr><th style="width:4%">#</th><th style="width:11%">วันที่</th><th style="width:22%">สถานที่ · งาน</th><th>ธง</th><th style="width:12%">ดู</th></tr>'+
+      rs.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+thD(r.dateKey)+'</td><td><b>'+esc(r.hospital)+'</b><br><span style="color:var(--mut);font-size:12px">'+esc(r.code+' '+String(r.label||'').split(' — ')[0])+'</span></td><td style="color:#B42318;font-size:12.5px">'+r.warn.map(esc).join('<br>')+'</td><td style="font-size:12px">'+(r.locAt?'<a href="https://www.google.com/maps?q='+r.locAt+'" target="_blank" rel="noopener">🗺 แผนที่</a><br>':'')+((r.photos||[]).length?'<a href="'+r.photos[0]+'" target="_blank" rel="noopener">🖼 รูป ('+r.photos.length+')</a>':'')+'</td></tr>').join('')+'</table></div>');});
+  if(!names.length)h+='<tr><td colspan="5" style="color:var(--mut)">— เดือนนี้ไม่มีธง —</td></tr>';
+  h+='<tr><th>รวมทั้งเดือน</th><th class="n">'+c(base,'📍')+'</th><th class="n">'+c(base,'📷')+'</th><th class="n">'+c(base,'📅')+'</th><th class="n">'+base.length+'</th></tr></table></div>'+det.join('');
+  $('#view').innerHTML=h;
+  document.querySelectorAll('[data-pt]').forEach(tr=>tr.onclick=()=>{const d=document.getElementById('pd-'+tr.dataset.pt);d.classList.toggle('hidden');if(!d.classList.contains('hidden'))d.scrollIntoView({block:'nearest'});});
+  $('#ptAll').onclick=()=>{const ds=[...document.querySelectorAll('.ptd')],open=ds.some(d=>d.classList.contains('hidden'));ds.forEach(d=>d.classList.toggle('hidden',!open));};
+  $('#ptPrint').onclick=()=>{document.querySelectorAll('.ptd').forEach(d=>d.classList.remove('hidden'));setTimeout(()=>window.print(),200);};
+}
 function vTcj(){   /* 27 พ.ย. 69 พี่ฝน: แยกแท็บเบี้ยเลี้ยงช่าง ตจว. ออกจากค่าจุด */
   const mLbl=(document.getElementById('selMonth')||{}).selectedOptions?.[0]?.text||month;
   const job=r=>esc(r.code+' '+String(r.label||'').split(' — ')[0])+(r.desc?' <span style="color:var(--mut)">— '+esc(String(r.desc).slice(0,60))+'</span>':'');
@@ -386,7 +406,7 @@ function vWeek(){
   wkZoom();$('#wTech').onchange=e=>{wkTech=e.target.value;vWeek();};$('#wPrev').onclick=()=>{wkStart=addD(wkStart,-7);vWeek();};$('#wNext').onclick=()=>{wkStart=addD(wkStart,7);vWeek();};
 }
 function count(){$('#nWait').textContent='';$('#nOt').textContent=RECS.filter(r=>inMonth(r)&&r.code==='K1').length||'';}
-function go(t){tab=t;applyLeave();document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pl:vPlan,pt:vPoint,tj:vTcj,wk:vWeek})[t]();count();window.scrollTo(0,0);}
+function go(t){tab=t;applyLeave();document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pl:vPlan,pt:vPoint,tj:vTcj,fl:vFlag,wk:vWeek})[t]();count();window.scrollTo(0,0);}
 
 /* ===== ย้อนกลับทีละชั้น + หน้าแรก (พี่ฝน 29 ต.ค. 69) · ปัดกลับ/ปุ่ม Back ของเครื่องใช้ได้ ===== */
 var NAVST=[],NAVSKIP=false;
