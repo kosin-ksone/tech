@@ -301,8 +301,8 @@ function vPlan(){
 function plBind(){$('#plPrev').onclick=()=>{plStart=addD(plStart,-7);vPlan();};$('#plNext').onclick=()=>{plStart=addD(plStart,7);vPlan();};$('#plNow').onclick=()=>{plStart=monOf(TODAY);vPlan();};
   $('#plRe').onclick=()=>{SPLAN=null;vPlan();};const q=$('#plQ');q.oninput=()=>{plQ=q.value.trim();const p=q.selectionStart;vPlan();const q2=$('#plQ');q2.focus();q2.setSelectionRange(p,p);};}
 let scAll=false;   // คะแนนรายเดือน ทุกเดือนในตารางเดียว (พี่ฝน 6 พ.ย. 69)
-function scSeg(){return '<div class="filters noprint"><div class="seg"><button class="'+(scAll?'':'on')+'" data-sc="0">เดือนที่เลือก</button><button class="'+(scAll?'on':'')+'" data-sc="1">📅 คะแนนแต่ละเดือน</button></div>'+'<button class="btn pri" onclick="window.print()">⬇ PDF '+(scAll?'คะแนนทุกเดือน':'เดือนนี้')+'</button></div>';}   // PDF รายเดือน (พี่ฝน 6 พ.ย. 69)
-function scSegBind(){document.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>{scAll=b.dataset.sc==='1';vScore();});}
+function scSeg(){return '<div class="filters noprint"><div class="seg"><button class="'+(scAll?'':'on')+'" data-sc="0">เดือนที่เลือก</button><button class="'+(scAll?'on':'')+'" data-sc="1">📅 คะแนนแต่ละเดือน</button></div>'+'<button class="btn" id="scXl">📊 Excel คะแนนช่าง</button><button class="btn pri" onclick="window.print()">⬇ PDF '+(scAll?'คะแนนทุกเดือน':'เดือนนี้')+'</button></div>';}   // PDF รายเดือน (พี่ฝน 6 พ.ย. 69)
+function scSegBind(){const sx=document.getElementById('scXl');if(sx)sx.onclick=()=>scoreXlsx(sx);document.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>{scAll=b.dataset.sc==='1';vScore();});}
 function vScoreAll(){
   const ms=[...new Set(RECS.map(r=>r.dateKey.slice(0,7)))].sort();
   const rows=TECHS.map(t=>{const per=ms.map(m=>RECS.filter(r=>r.tech===t.name&&r.status==='ผ่าน'&&r.dateKey.slice(0,7)===m).reduce((a,r)=>a+r.pt,0));return {t:t,per:per,tot:per.reduce((a,b)=>a+b,0)};}).sort((a,b)=>b.tot-a.tot);
@@ -340,7 +340,7 @@ function vPoint(){   // ค่าจุด + เบี้ยเลี้ยง �
     const mine=RECS.filter(r=>r.tech===t.name&&inMonth(r));const unk=mine.filter(r=>r.status==='ผ่าน'&&classify(r).k==='unk');totU+=unk.length;
     const ex=[];mine.forEach(r=>{if(r.status==='ไม่ผ่าน')ex.push([r,'กด ⛔ ไม่นับ'+(r.reason?' ('+r.reason+')':'')]);else if(isOffice(r.hospital))ex.push([r,'เข้าออฟฟิศ — ไม่คิด']);});
     h+='<tr class="click" data-pt="'+esc(t.name)+'"><td><b>'+esc(dnT(t))+'</b></td><td class="n">'+a+'</td><td class="n">'+b+'</td><td class="n">'+pd.length+'</td><td class="n"><b>'+sm.toLocaleString()+'</b></td><td class="n">'+(unk.length?'<span style="color:#B7791F;font-weight:700">'+unk.length+'</span>':'')+'</td></tr>';
-    let d='<div class="ptd hidden" id="pd-'+esc(t.name)+'"><h3 style="margin:14px 0 6px">'+esc(t.name)+' ('+esc(nick(t))+') · ค่าจุด '+(a+b)+' จุด · เบี้ยเลี้ยง '+pd.length+' วัน · รวม ฿'+sm.toLocaleString()+'</h3>';
+    let d='<div class="ptd hidden" id="pd-'+esc(t.name)+'"><div class="noprint" style="margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-claim="'+esc(t.name)+'">📄 ร่างใบเบิก (ฟอร์มค่ารถและค่าใช้จ่าย)</button><button class="btn" data-ptx="'+esc(t.name)+'">📊 Excel ของคนนี้</button></div><h3 style="margin:14px 0 6px">'+esc(t.name)+' ('+esc(nick(t))+') · ค่าจุด '+(a+b)+' จุด · เบี้ยเลี้ยง '+pd.length+' วัน · รวม ฿'+sm.toLocaleString()+'</h3>';
     d+=p.length?'<div style="font-weight:700;margin:6px 0 4px">🛵 ค่าจุด</div><table><tr><th style="width:4%">#</th><th style="width:11%">วันที่</th><th style="width:20%">สถานที่</th><th style="width:17%">เขต / จังหวัด</th><th>งานที่ทำ (คิดจากรายงานเหล่านี้)</th><th class="n" style="width:6%">รูป</th><th class="n" style="width:8%">ค่าจุด</th></tr>'+
       p.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+thD(x.dateKey)+'</td><td>'+esc(x.hospital)+'</td><td>'+zoneTxt(x.hospital,x.z)+'</td><td>'+x.recs.map(job).join('<br>')+(x.skip&&x.skip.length?'<div style="font-size:11px;color:#B9770E;font-weight:600">📍 คิดแค่จุดแรกจุดเดียว · ไม่คิด '+esc(x.skip.join(', '))+' (รพ. ใกล้กัน)</div>':'')+(x.recs.length>1?'<div style="font-size:11px;color:var(--mut)">'+x.recs.length+' งาน ที่เดียวกัน วันเดียวกัน = 1 จุด</div>':'')+'</td><td class="n">'+x.recs.reduce((s,r)=>s+(r.photos||[]).length,0)+'</td><td class="n"><b>'+x.rate+'</b></td></tr>').join('')+
       '<tr><th colspan="6">ค่าจุด '+(a+b)+' จุด (กทม. '+a+' × '+R1+' + ปริมณฑล '+b+' × '+R2+')</th><th class="n">฿'+sA.toLocaleString()+'</th></tr></table>':'<div style="color:var(--mut)">— ไม่มีค่าจุดในเดือนนี้ —</div>';
@@ -354,8 +354,72 @@ function vPoint(){   // ค่าจุด + เบี้ยเลี้ยง �
   $('#view').innerHTML=h;
   document.querySelectorAll('[data-pt]').forEach(tr=>tr.onclick=()=>{const d=document.getElementById('pd-'+tr.dataset.pt);d.classList.toggle('hidden');if(!d.classList.contains('hidden'))d.scrollIntoView({block:'nearest'});});
   $('#ptAll').onclick=()=>{const ds=[...document.querySelectorAll('.ptd')],open=ds.some(d=>d.classList.contains('hidden'));ds.forEach(d=>d.classList.toggle('hidden',!open));};
+  bindXl();
   $('#ptPrint').onclick=()=>{document.querySelectorAll('.ptd').forEach(d=>d.classList.remove('hidden'));setTimeout(()=>window.print(),200);};
 }
+/* 27 พ.ย. 69 พี่ฝน: ร่างใบเบิก (ฟอร์มค่ารถและค่าใช้จ่าย tpl_ttravel) + Excel ค่าจุดรายคน + Excel คะแนนช่าง · ไฟล์พิมพ์แนบเอกสารได้ */
+function xlSave(wb,fname){return wb.xlsx.writeBuffer().then(buf=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));a.download=fname;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},5000);});}
+function xlBusy(b,on){if(!b)return;b.disabled=on;b.classList.toggle('blink',on);if(on){b.dataset.t=b.textContent;b.textContent='⏳ กำลังทำไฟล์…';}else if(b.dataset.t)b.textContent=b.dataset.t;}
+function claimXlsx(name,btn){const t=TECHS_ALL.find(x=>x.name===name)||{name:name},y=+month.slice(0,4),m=+month.slice(5)-1,n=new Date(y,m+1,0).getDate(),bk=isBkk(t),AC=bk?'J':'K';
+  const PT={};if(bk)pointRows(name).forEach(x=>{PT[x.dateKey+'|'+x.hospital]=x.rate;(x.skip||[]).forEach(h=>{PT[x.dateKey+'|'+h]=0;});});
+  const AL={};(bk?perDiemRows(name):tcjRows(name)).forEach(x=>{AL[x.dateKey]=x.amt;});
+  const vc=({'รถบริษัท':5,'รถส่วนตัว':6,'รถยนต์':6,'จักรยานยนต์':7,'มอเตอร์ไซค์':7})[t.vehicle]||0;
+  xlBusy(btn,true);
+  return xlNeed().then(()=>fetch('tpl_ttravel.xlsx?v=2')).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(b=>{const wb=new ExcelJS.Workbook();return wb.xlsx.load(b).then(()=>wb);}).then(wb=>{const ws=wb.worksheets[0],F=(a,f,v)=>{ws.getCell(a).value={formula:f,result:v};};
+    ws.getCell('A2').value='ค่ารถและค่าใช้จ่ายติดต่องานประจำ เดือน '+MONF[m]+' ปี '+(y+543)+'  (ร่างจาก Dashboard ENDO)';
+    ws.getCell('A3').value='ชื่อ '+name+(t.nick?' ('+t.nick+')':'')+'  ,สำหรับใช้'+(t.vehicle||'')+'  สถานที่ center ในเขตคือ จังหวัด '+(bk?'กรุงเทพมหานคร':baseOf(name,month+'-31').join(', '));
+    ws.getCell('A8').value=new Date(Date.UTC(y+543,m,1));
+    const G={C:0,I:0,J:0,K:0,L:0,N:0,O:0};
+    for(let k=0;k<31;k++){const r0=8+9*k,ds=k<n?month+'-'+String(k+1).padStart(2,'0'):'';
+      const recs=ds?RECS.filter(r=>r.tech===name&&r.dateKey===ds&&r.status!=='ไม่ผ่าน').slice().sort((a,b)=>String(a.id)<String(b.id)?-1:1):[];
+      const pl=[];recs.forEach(r=>{const h=String(r.hospital||'').trim();if(h&&pl.indexOf(h)<0)pl.push(h);});
+      if(k)F('A'+r0,'A'+(r0-9)+'+1',new Date(Date.UTC(y+543,m,k+1)));
+      let pt=0,prev='';
+      for(let j=0;j<7;j++){const r=r0+j,h=pl[j];
+        if(j===0)ws.getCell('B'+r).value=pl.length?null:(ds&&[0,6].indexOf(new Date(y,m,k+1).getDay())>=0?'วันหยุด':null);else F('B'+r,'D'+(r-1),prev);
+        ws.getCell('C'+r).value=null;ws.getCell('D'+r).value=h||'-';prev=h||'-';[5,6,7,8].forEach(cc=>{ws.getRow(r).getCell(cc).value=null;});if(h&&vc)ws.getRow(r).getCell(vc).value='Y';
+        const v=h?(PT[ds+'|'+h]||0):0;ws.getCell('I'+r).value=v||null;pt+=v;}
+      const al=ds?(AL[ds]||0):0;ws.getCell('J'+r0).value=null;ws.getCell('K'+r0).value=null;ws.getCell(AC+r0).value=al||null;['L','M','N'].forEach(L=>{ws.getCell(L+r0).value=null;});
+      const rt=r0+7;F('C'+rt,'SUM(C'+r0+':C'+(r0+6)+')',0);F('I'+rt,'SUM(I'+r0+':I'+(r0+6)+')',pt);F('J'+rt,'SUM(J'+r0+')',AC==='J'?al:0);F('K'+rt,'SUM(K'+r0+')',AC==='K'?al:0);F('L'+rt,'SUM(L'+r0+')',0);F('N'+rt,'SUM(N'+r0+')',0);F('O'+rt,'SUM(I'+rt+',J'+rt+',K'+rt+',L'+rt+',N'+rt+')',pt+al);
+      G.I+=pt;G[AC]+=al;G.O+=pt+al;}
+    const refs=L=>{const a=[];for(let k=0;k<31;k++)a.push(L+(15+9*k));return a.join('+');};
+    ['C','I','J','K','L','N','O'].forEach(L=>F(L+'289',refs(L),G[L]||0));
+    wb.calcProperties.fullCalcOnLoad=true;
+    return xlSave(wb,'ร่างใบเบิก ค่ารถและค่าใช้จ่าย '+name+' '+MONF[m]+' '+(y+543)+'.xlsx');
+  }).catch(()=>alert('ทำใบเบิกไม่สำเร็จ ลองใหม่อีกครั้ง')).then(()=>xlBusy(btn,false));}
+function ptXlsx(name,btn){const t=TECHS_ALL.find(x=>x.name===name)||{name:name},bk=isBkk(t),m=+month.slice(5)-1,y=+month.slice(0,4);xlBusy(btn,true);
+  return xlNeed().then(()=>{const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet(bk?'ค่าจุด':'เบี้ยเลี้ยง ตจว.');
+    ws.addRow([(bk?'ค่าจุด / เบี้ยเลี้ยง · ':'เบี้ยเลี้ยง ตจว. · ')+name+(t.nick?' ('+t.nick+')':'')+' · '+MONF[m]+' '+(y+543)]).font={bold:true,size:14};
+    ws.addRow(['วันที่','ประเภท','สถานที่ / จังหวัด','บาท','คิดจากรายงาน','หมายเหตุ']).font={bold:true};let tot=0;
+    if(bk){pointRows(name).forEach(x=>{tot+=x.rate;ws.addRow([x.dateKey,'ค่าจุด',x.hospital,x.rate,x.recs.map(r=>r.code+' '+String(r.label||'').split(' — ')[0]).join(' · '),(x.skip&&x.skip.length?'คิดแค่จุดแรกจุดเดียว ไม่คิด '+x.skip.join(', ')+' (รพ. ใกล้กัน)':'')]);});
+      perDiemRows(name).forEach(x=>{tot+=x.amt;ws.addRow([x.dateKey,'เบี้ยเลี้ยงไป ตจว.',x.provs.join(', '),x.amt,x.recs.map(r=>r.hospital+' · '+r.code).join(' · '),'วันละครั้ง']);});}
+    else tcjRows(name).forEach(x=>{tot+=x.amt;ws.addRow([x.dateKey,'เบี้ยเลี้ยง ตจว. '+(x.half?'ครึ่งวัน':'เต็มวัน'),x.provs.join(', '),x.amt,x.recs.map(r=>r.hospital+' · '+r.code).join(' · '),'ช่วงเวลา: '+x.periods.join(', ')]);});
+    ws.addRow(['รวม','','',tot]).font={bold:true};
+    [12,20,34,10,60,40].forEach((w,i)=>{ws.getColumn(i+1).width=w;});ws.getColumn(5).alignment={wrapText:true,vertical:'top'};
+    return xlSave(wb,(bk?'ค่าจุด ':'เบี้ยเลี้ยง ตจว. ')+name+' '+MONF[m]+' '+(y+543)+'.xlsx');}).catch(()=>alert('ทำไฟล์ไม่สำเร็จ ลองใหม่อีกครั้ง')).then(()=>xlBusy(btn,false));}
+function scoreXlsx(btn){xlBusy(btn,true);
+  return xlNeed().then(()=>{const wb=new ExcelJS.Workbook(),ms=[...new Set(RECS.map(r=>r.dateKey.slice(0,7)))].sort();
+    const w1=wb.addWorksheet('คะแนนแต่ละเดือน');w1.addRow(['ช่าง','เขต'].concat(ms).concat(['รวม'])).font={bold:true};
+    TECHS.map(t=>{const per=ms.map(mm=>RECS.filter(r=>r.tech===t.name&&r.status==='ผ่าน'&&r.dateKey.slice(0,7)===mm).reduce((a,r)=>a+r.pt,0));return {t:t,per:per,tot:per.reduce((a,b)=>a+b,0)};}).sort((a,b)=>b.tot-a.tot).forEach(r=>{w1.addRow([dnT(r.t),isBkk(r.t)?'กทม.':'ตจว.'].concat(r.per).concat([r.tot]));});
+    w1.getColumn(1).width=34;
+    const w2=wb.addWorksheet('คะแนนเดือนที่เลือก');w2.addRow(['ช่าง','เขต','คะแนน','งานที่นับ','ไม่นับ (งาน)']).font={bold:true};
+    TECHS.map(t=>{const mm=RECS.filter(r=>r.tech===t.name&&inMonth(r)),ok=mm.filter(r=>r.status==='ผ่าน');return [dnT(t),isBkk(t)?'กทม.':'ตจว.',ok.reduce((a,r)=>a+r.pt,0),ok.length,mm.filter(r=>r.status==='ไม่ผ่าน').length];}).sort((a,b)=>b[2]-a[2]).forEach(r=>w2.addRow(r));
+    w2.getColumn(1).width=34;
+    const w3=wb.addWorksheet('รายงานเดือนที่เลือก');w3.addRow(['วันที่','ช่าง','สถานที่','รหัส','งาน','คะแนน','สถานะ','ผู้ตรวจ','เหตุผล']).font={bold:true};
+    RECS.filter(inMonth).slice().sort((a,b)=>a.dateKey<b.dateKey?-1:a.dateKey>b.dateKey?1:(a.tech<b.tech?-1:1)).forEach(r=>w3.addRow([r.dateKey,r.tech,r.hospital,r.code,String(r.label||'').split(' — ')[0],r.pt,r.status,r.by||'',r.reason||'']));
+    [12,30,36,8,40,8,10,14,30].forEach((w,i)=>{w3.getColumn(i+1).width=w;});
+    return xlSave(wb,'คะแนนช่าง '+MONF[+month.slice(5)-1]+' '+(+month.slice(0,4)+543)+'.xlsx');}).catch(()=>alert('ทำไฟล์ไม่สำเร็จ ลองใหม่อีกครั้ง')).then(()=>xlBusy(btn,false));}
+function tjAllXlsx(btn){const m=+month.slice(5)-1,y=+month.slice(0,4);xlBusy(btn,true);
+  return xlNeed().then(()=>{const wb=new ExcelJS.Workbook(),w1=wb.addWorksheet('สรุปรายคน'),w2=wb.addWorksheet('รายละเอียดรายวัน');
+    w1.addRow(['เบี้ยเลี้ยงช่าง ตจว. · '+MONF[m]+' '+(y+543)]).font={bold:true,size:14};w1.addRow(['ช่าง','จังหวัดฐาน','วันเต็ม','วันครึ่ง','รวม (บาท)']).font={bold:true};
+    w2.addRow(['ช่าง','วันที่','จังหวัด','เต็ม/ครึ่งวัน','บาท','คิดจากรายงาน']).font={bold:true};let T=0;
+    TECHS.filter(t=>!isBkk(t)).forEach(t=>{const rows=tcjRows(t.name),f=rows.filter(x=>!x.half).length,sm=rows.reduce((a,x)=>a+x.amt,0);T+=sm;w1.addRow([dnT(t),baseOf(t.name,month+'-31').join(', '),f,rows.length-f,sm]);
+      rows.forEach(x=>w2.addRow([dnT(t),x.dateKey,x.provs.join(', '),x.half?'ครึ่งวัน':'เต็มวัน',x.amt,x.recs.map(r=>r.hospital+' · '+r.code).join(' · ')]));});
+    w1.addRow(['รวมทั้งเดือน','','','',T]).font={bold:true};
+    [34,24,10,10,12].forEach((w,i)=>{w1.getColumn(i+1).width=w;});[34,12,18,12,8,70].forEach((w,i)=>{w2.getColumn(i+1).width=w;});
+    return xlSave(wb,'เบี้ยเลี้ยงช่าง ตจว. '+MONF[m]+' '+(y+543)+'.xlsx');}).catch(()=>alert('ทำไฟล์ไม่สำเร็จ ลองใหม่อีกครั้ง')).then(()=>xlBusy(btn,false));}
+function bindXl(){document.querySelectorAll('[data-claim]').forEach(b=>{b.onclick=e=>{e.stopPropagation();claimXlsx(b.dataset.claim,b);};});document.querySelectorAll('[data-ptx]').forEach(b=>{b.onclick=e=>{e.stopPropagation();ptXlsx(b.dataset.ptx,b);};});}
+
 function vFlag(){   /* 27 พ.ย. 69 พี่ฝน: สถิติธง พิกัดไม่ตรง / รูปซ้ำ / วันที่ถ่ายไม่ตรง รายช่าง กดดูรายวัน */
   const mLbl=(document.getElementById('selMonth')||{}).selectedOptions?.[0]?.text||month;
   const base=RECS.filter(inMonth).filter(r=>r.warn&&r.warn.length),c=(rs,k)=>rs.filter(r=>r.warn.some(w=>w.indexOf(k)===0)).length;
@@ -374,22 +438,25 @@ function vFlag(){   /* 27 พ.ย. 69 พี่ฝน: สถิติธง พ
   $('#view').innerHTML=h;
   document.querySelectorAll('[data-pt]').forEach(tr=>tr.onclick=()=>{const d=document.getElementById('pd-'+tr.dataset.pt);d.classList.toggle('hidden');if(!d.classList.contains('hidden'))d.scrollIntoView({block:'nearest'});});
   $('#ptAll').onclick=()=>{const ds=[...document.querySelectorAll('.ptd')],open=ds.some(d=>d.classList.contains('hidden'));ds.forEach(d=>d.classList.toggle('hidden',!open));};
+  bindXl();
   $('#ptPrint').onclick=()=>{document.querySelectorAll('.ptd').forEach(d=>d.classList.remove('hidden'));setTimeout(()=>window.print(),200);};
 }
 function vTcj(){   /* 27 พ.ย. 69 พี่ฝน: แยกแท็บเบี้ยเลี้ยงช่าง ตจว. ออกจากค่าจุด */
   const mLbl=(document.getElementById('selMonth')||{}).selectedOptions?.[0]?.text||month;
   const job=r=>esc(r.code+' '+String(r.label||'').split(' — ')[0])+(r.desc?' <span style="color:var(--mut)">— '+esc(String(r.desc).slice(0,60))+'</span>':'');
-  let h='<div class="filters noprint"><button class="btn" id="ptAll">📂 กาง/พับ ทุกคน</button><button class="btn pri" id="ptPrint">⬇ PDF / พิมพ์</button></div>';
+  let h='<div class="filters noprint"><button class="btn" id="tjXl">📊 Excel เบี้ยเลี้ยง ตจว. ทุกคน</button><button class="btn" id="ptAll">📂 กาง/พับ ทุกคน</button><button class="btn pri" id="ptPrint">⬇ PDF / พิมพ์</button></div>';
   const tcs=TECHS.filter(t=>!isBkk(t)),detT=[];let tT=0,tF=0,tH=0;
   h+='<div class="note" style="margin-top:4px">🚐 <b>เบี้ยเลี้ยงช่าง ตจว. เดือน '+esc(mLbl)+'</b> · ออกนอกจังหวัดฐาน วันละครั้ง · เต็มวัน ฿'+TF(mEnd())+' · ครึ่งวัน ฿'+TH(mEnd())+' (ไปแค่ '+esc(HPS(mEnd()).join('/'))+') · จังหวัดฐานตามแท็บ "จังหวัดฐานช่าง" · <span style="color:var(--mut)">'+(RULES?'อัตราตามชีตกฎค่าจุด ENDO':'อัตราตั้งต้น (ยังโหลดชีตกฎ ENDO ไม่ได้)')+'</span></div>';
   h+='<div class="box"><table class="ptsum"><tr><th>ช่าง ตจว.</th><th>จังหวัดฐาน</th><th class="n">วันเต็ม</th><th class="n">วันครึ่ง</th><th class="n">รวม (บาท)</th></tr>';
   tcs.forEach(t=>{const rows=tcjRows(t.name),f=rows.filter(x=>!x.half).length,hf=rows.length-f,sm=rows.reduce((s,x)=>s+x.amt,0);tT+=sm;tF+=f;tH+=hf;
     h+='<tr class="click" data-pt="T'+esc(t.name)+'"><td><b>'+esc(dnT(t))+'</b></td><td>'+esc(baseOf(t.name,mEnd()).join(', ')||'-')+'</td><td class="n">'+f+'</td><td class="n">'+hf+'</td><td class="n"><b>'+sm.toLocaleString()+'</b></td></tr>';
-    detT.push('<div class="ptd hidden" id="pd-T'+esc(t.name)+'"><h3 style="margin:14px 0 6px">'+esc(t.name)+' ('+esc(nick(t))+') · เบี้ยเลี้ยง ตจว. '+rows.length+' วัน · รวม ฿'+sm.toLocaleString()+'</h3>'+(rows.length?'<table><tr><th style="width:4%">#</th><th style="width:11%">วันที่</th><th style="width:15%">จังหวัด</th><th>สถานที่ · งาน</th><th style="width:16%">เต็ม/ครึ่งวัน</th><th class="n" style="width:8%">บาท</th></tr>'+rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+thD(x.dateKey)+'</td><td>'+x.provs.map(esc).join(', ')+'</td><td>'+x.recs.map(r=>'<b>'+esc(r.hospital)+'</b> · '+job(r)).join('<br>')+'</td><td>'+(x.half?'ครึ่งวัน':'เต็มวัน')+' <span style="color:var(--mut);font-size:11px">('+esc(x.periods.join(', '))+')</span></td><td class="n"><b>'+x.amt+'</b></td></tr>').join('')+'<tr><th colspan="5">เบี้ยเลี้ยง ตจว. '+rows.length+' วัน</th><th class="n">฿'+sm.toLocaleString()+'</th></tr></table>':'<div style="color:var(--mut)">— ไม่มีวันออกนอกจังหวัดฐาน —</div>')+'</div>');});
+    detT.push('<div class="ptd hidden" id="pd-T'+esc(t.name)+'"><div class="noprint" style="margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-claim="'+esc(t.name)+'">📄 ร่างใบเบิก (ฟอร์มค่ารถและค่าใช้จ่าย)</button><button class="btn" data-ptx="'+esc(t.name)+'">📊 Excel ของคนนี้</button></div><h3 style="margin:14px 0 6px">'+esc(t.name)+' ('+esc(nick(t))+') · เบี้ยเลี้ยง ตจว. '+rows.length+' วัน · รวม ฿'+sm.toLocaleString()+'</h3>'+(rows.length?'<table><tr><th style="width:4%">#</th><th style="width:11%">วันที่</th><th style="width:15%">จังหวัด</th><th>สถานที่ · งาน</th><th style="width:16%">เต็ม/ครึ่งวัน</th><th class="n" style="width:8%">บาท</th></tr>'+rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+thD(x.dateKey)+'</td><td>'+x.provs.map(esc).join(', ')+'</td><td>'+x.recs.map(r=>'<b>'+esc(r.hospital)+'</b> · '+job(r)).join('<br>')+'</td><td>'+(x.half?'ครึ่งวัน':'เต็มวัน')+' <span style="color:var(--mut);font-size:11px">('+esc(x.periods.join(', '))+')</span></td><td class="n"><b>'+x.amt+'</b></td></tr>').join('')+'<tr><th colspan="5">เบี้ยเลี้ยง ตจว. '+rows.length+' วัน</th><th class="n">฿'+sm.toLocaleString()+'</th></tr></table>':'<div style="color:var(--mut)">— ไม่มีวันออกนอกจังหวัดฐาน —</div>')+'</div>');});
   h+='<tr><th>รวมทั้งเดือน</th><th></th><th class="n">'+tF+'</th><th class="n">'+tH+'</th><th class="n">฿'+tT.toLocaleString()+'</th></tr></table></div>'+detT.join('');
   $('#view').innerHTML=h;
   document.querySelectorAll('[data-pt]').forEach(tr=>tr.onclick=()=>{const d=document.getElementById('pd-'+tr.dataset.pt);d.classList.toggle('hidden');if(!d.classList.contains('hidden'))d.scrollIntoView({block:'nearest'});});
   $('#ptAll').onclick=()=>{const ds=[...document.querySelectorAll('.ptd')],open=ds.some(d=>d.classList.contains('hidden'));ds.forEach(d=>d.classList.toggle('hidden',!open));};
+  const tx=document.getElementById('tjXl');if(tx)tx.onclick=()=>tjAllXlsx(tx);
+  bindXl();
   $('#ptPrint').onclick=()=>{document.querySelectorAll('.ptd').forEach(d=>d.classList.remove('hidden'));setTimeout(()=>window.print(),200);};
 }
 /* แตะช่องในรายงานรายสัปดาห์ = ขยายอ่านเต็ม */
