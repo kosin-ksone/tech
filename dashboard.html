@@ -72,7 +72,7 @@ body.ro [data-ok],body.ro [data-no],body.ro [data-undo]{display:none!important}@
   </div>
   <div class="demo" id="demoBar"></div>
   <div class="tabs" id="tabs">
-    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">📋 ดูรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด กทม.+ปริมณฑล</button><button data-t="pl">📅 แพลนช่าง</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
+    <button data-t="ov" class="on">📊 ภาพรวม</button><button data-t="rv">📋 ดูรายงาน <span id="nWait" class="badge b-wait"></span></button><button data-t="sc">🏆 คะแนนช่าง</button><button data-t="ot">📝 งานอื่นๆ (ยังไม่มีคะแนน) <span id="nOt" class="badge b-wait"></span></button><button data-t="pt">🛵 ค่าจุด ช่าง กทม.</button><button data-t="tj">🚐 เบี้ยเลี้ยง ช่าง ตจว.</button><button data-t="pl">📅 แพลนช่าง</button><button data-t="wk">📄 รายงานรายสัปดาห์</button>
   </div>
   <div class="wrap" id="view"></div>
 </div>
@@ -125,7 +125,7 @@ const canonH=(h,d)=>{const n=HN(h);for(const g of GRPS(d)){if(g.some(x=>HN(x)===
 /* 26 พ.ย. 69 พี่ฝน: แท็บ "รพ. ค่าจุด 100 (แก้ไขได้)" ENDO เพิ่ม/ลบ รพ. เอง · ใช้ตั้งแต่ HL0 · ก่อนนั้น = ตามจังหวัดปริมณฑลแบบเดิม */
 const HL0='2026-12-01';let HOS=null,HM=null;
 function hosRate(h,d){if(!HOS||!d||d<HL0)return null;if(!HM){HM={};HOS.forEach(r=>{const k=HN(r[0]);(HM[k]||(HM[k]=[])).push(r);});}const z=zoneOf(h),ks=[HN(h)];if(z)ks.push(HN(z.name));let best=null,bf='';ks.forEach(k=>(HM[k]||[]).forEach(r=>{const f=r[2]||'',t=r[3]||'';if(f&&f>d)return;if(t&&t<d)return;if(best===null||f>=bf){best=+r[1]||0;bf=f;}}));return best;}
-function loadRules(){if(!SYNC_URL)return;fetch(SYNC_URL+'?op=endorules').then(r=>r.json()).then(j=>{if(!j||!j.ok||!j.rules)return;RULES=j.rules;HOS=j.hos||null;HM=null;BASE=j.base||null;LEAVE=j.leave||{};(j.techs||[]).forEach(x=>{let t=TECHS_ALL.find(y=>y.name===x.name);if(!t){t={name:x.name};TECHS_ALL.push(t);}if(x.nick)t.nick=x.nick;if(x.vehicle)t.vehicle=x.vehicle;if(x.region)t.region=x.region;else delete t.region;});applyLeave();/* ช่างใหม่จากชีต ENDO */if(!$('#app').classList.contains('hidden')&&(tab==='pt'||tab==='ov'))go(tab);}).catch(()=>{});}   // เบี้ยเลี้ยง ช่าง กทม. ไป ตจว. ต่อวัน (เท่าช่าง ตจว. · พี่ฝน 29 ต.ค. 69)
+function loadRules(){if(!SYNC_URL)return;fetch(SYNC_URL+'?op=endorules').then(r=>r.json()).then(j=>{if(!j||!j.ok||!j.rules)return;RULES=j.rules;HOS=j.hos||null;HM=null;BASE=j.base||null;LEAVE=j.leave||{};(j.techs||[]).forEach(x=>{let t=TECHS_ALL.find(y=>y.name===x.name);if(!t){t={name:x.name};TECHS_ALL.push(t);}if(x.nick)t.nick=x.nick;if(x.vehicle)t.vehicle=x.vehicle;if(x.region)t.region=x.region;else delete t.region;});applyLeave();/* ช่างใหม่จากชีต ENDO */if(!$('#app').classList.contains('hidden')&&(tab==='pt'||tab==='tj'||tab==='ov'))go(tab);}).catch(()=>{});}   // เบี้ยเลี้ยง ช่าง กทม. ไป ตจว. ต่อวัน (เท่าช่าง ตจว. · พี่ฝน 29 ต.ค. 69)
 /* 26 พ.ย. 69 พี่ฝน: ชื่อทางการที่ฐานเขตยังไม่มี/ไม่มีจังหวัด (เฉพาะ Dashboard ไม่ใส่รายการให้ช่างเลือก) */
 Object.assign(window.ZONE_INFO=window.ZONE_INFO||{},{"โรงพยาบาลจุฬาลงกรณ์": {"p": "กทม", "a": "ปทุมวัน", "t": 1}, "โรงพยาบาลจุฬาลงกรณ์ สภากาชาดไทย": {"p": "กทม", "a": "ปทุมวัน", "t": 1}, "โรงพยาบาลจุฬาภรณ์": {"p": "กทม", "a": "หลักสี่", "t": 2}, "โรงพยาบาลมิตรประชา": {"p": "กทม", "a": "", "t": 3}, "บริษัท อินเตอร์ลิ้งค์ เฮลธ์ เทคโนโลยี จำกัด": {"p": "กทม", "a": "", "t": 3}, "โรงพยาบาลสัตว์เว็ทวิลล์ รังสิต": {"p": "ปทุมธานี", "a": "", "t": 3}, "โรงพยาบาลสัตว์เล็กจุฬา": {"p": "กทม", "a": "ปทุมวัน", "t": 3}, "Menlogist Clinic": {"p": "กทม", "a": "", "t": 3}, "เคี้ยงหลีพลาซ่า บ้านหม้อ": {"p": "กทม", "a": "พระนคร", "t": 3}, "นครชัยแอร์": {"p": "กทม", "a": "", "t": 3}, "สมาคมส่งเสริมเทคโนโลยี (ไทย-ญี่ปุ่น) พัฒนาการ": {"p": "กทม", "a": "สวนหลวง", "t": 3}, "คลินิกสยามเฟอร์ทิริตี้ สาขาสนามเป้า": {"p": "กทม", "a": "พญาไท", "t": 3}, "บริษัท ขนส่ง จำกัด (999)": {"p": "กทม", "a": "", "t": 3}, "โรงพยาบาลพิษณุเวช": {"p": "พิษณุโลก", "a": "เมืองพิษณุโลก", "t": 3}});
 const HN=s=>String(s||'').toLowerCase().replace(/โรงพยาบาล|รพ\.?|\s|\.|-|\(|\)/g,'');
@@ -350,8 +350,17 @@ function vPoint(){   // ค่าจุด + เบี้ยเลี้ยง �
     if(ex.length)d+='<div style="margin-top:8px;font-size:12.5px"><b>ไม่คิด ('+ex.length+' งาน)</b><br>'+ex.map(([r,why])=>thD(r.dateKey)+' · '+esc(r.hospital)+' · '+esc(r.code)+' — <span style="color:#B42318">'+esc(why)+'</span>').join('<br>')+'</div>';
     det.push(d+'</div>');});
   h+='<tr><th>รวมทั้งเดือน</th><th class="n">'+totA+'</th><th class="n">'+totB+'</th><th class="n">'+totD+'</th><th class="n">฿'+tot.toLocaleString()+'</th><th class="n">'+(totU||'')+'</th></tr></table><div class="noprint" style="font-size:11.5px;color:var(--mut);margin-top:6px">แตะชื่อช่างเพื่อดูว่าแต่ละรายการคิดจากรายงานไหน</div>'+det.join('')+'</div>';
+  $('#view').innerHTML=h;
+  document.querySelectorAll('[data-pt]').forEach(tr=>tr.onclick=()=>{const d=document.getElementById('pd-'+tr.dataset.pt);d.classList.toggle('hidden');if(!d.classList.contains('hidden'))d.scrollIntoView({block:'nearest'});});
+  $('#ptAll').onclick=()=>{const ds=[...document.querySelectorAll('.ptd')],open=ds.some(d=>d.classList.contains('hidden'));ds.forEach(d=>d.classList.toggle('hidden',!open));};
+  $('#ptPrint').onclick=()=>{document.querySelectorAll('.ptd').forEach(d=>d.classList.remove('hidden'));setTimeout(()=>window.print(),200);};
+}
+function vTcj(){   /* 27 พ.ย. 69 พี่ฝน: แยกแท็บเบี้ยเลี้ยงช่าง ตจว. ออกจากค่าจุด */
+  const mLbl=(document.getElementById('selMonth')||{}).selectedOptions?.[0]?.text||month;
+  const job=r=>esc(r.code+' '+String(r.label||'').split(' — ')[0])+(r.desc?' <span style="color:var(--mut)">— '+esc(String(r.desc).slice(0,60))+'</span>':'');
+  let h='<div class="filters noprint"><button class="btn" id="ptAll">📂 กาง/พับ ทุกคน</button><button class="btn pri" id="ptPrint">⬇ PDF / พิมพ์</button></div>';
   const tcs=TECHS.filter(t=>!isBkk(t)),detT=[];let tT=0,tF=0,tH=0;
-  h+='<div class="note" style="margin-top:18px">🚐 <b>เบี้ยเลี้ยงช่าง ตจว. เดือน '+esc(mLbl)+'</b> · ออกนอกจังหวัดฐาน วันละครั้ง · เต็มวัน ฿'+TF(mEnd())+' · ครึ่งวัน ฿'+TH(mEnd())+' (ไปแค่ '+esc(HPS(mEnd()).join('/'))+') · จังหวัดฐานตามแท็บ "จังหวัดฐานช่าง" · <span style="color:var(--mut)">'+(RULES?'อัตราตามชีตกฎค่าจุด ENDO':'อัตราตั้งต้น (ยังโหลดชีตกฎ ENDO ไม่ได้)')+'</span></div>';
+  h+='<div class="note" style="margin-top:4px">🚐 <b>เบี้ยเลี้ยงช่าง ตจว. เดือน '+esc(mLbl)+'</b> · ออกนอกจังหวัดฐาน วันละครั้ง · เต็มวัน ฿'+TF(mEnd())+' · ครึ่งวัน ฿'+TH(mEnd())+' (ไปแค่ '+esc(HPS(mEnd()).join('/'))+') · จังหวัดฐานตามแท็บ "จังหวัดฐานช่าง" · <span style="color:var(--mut)">'+(RULES?'อัตราตามชีตกฎค่าจุด ENDO':'อัตราตั้งต้น (ยังโหลดชีตกฎ ENDO ไม่ได้)')+'</span></div>';
   h+='<div class="box"><table class="ptsum"><tr><th>ช่าง ตจว.</th><th>จังหวัดฐาน</th><th class="n">วันเต็ม</th><th class="n">วันครึ่ง</th><th class="n">รวม (บาท)</th></tr>';
   tcs.forEach(t=>{const rows=tcjRows(t.name),f=rows.filter(x=>!x.half).length,hf=rows.length-f,sm=rows.reduce((s,x)=>s+x.amt,0);tT+=sm;tF+=f;tH+=hf;
     h+='<tr class="click" data-pt="T'+esc(t.name)+'"><td><b>'+esc(dnT(t))+'</b></td><td>'+esc(baseOf(t.name,mEnd()).join(', ')||'-')+'</td><td class="n">'+f+'</td><td class="n">'+hf+'</td><td class="n"><b>'+sm.toLocaleString()+'</b></td></tr>';
@@ -376,7 +385,7 @@ function vWeek(){
   wkZoom();$('#wTech').onchange=e=>{wkTech=e.target.value;vWeek();};$('#wPrev').onclick=()=>{wkStart=addD(wkStart,-7);vWeek();};$('#wNext').onclick=()=>{wkStart=addD(wkStart,7);vWeek();};
 }
 function count(){$('#nWait').textContent='';$('#nOt').textContent=RECS.filter(r=>inMonth(r)&&r.code==='K1').length||'';}
-function go(t){tab=t;applyLeave();document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pl:vPlan,pt:vPoint,wk:vWeek})[t]();count();window.scrollTo(0,0);}
+function go(t){tab=t;applyLeave();document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({ov:vOverview,rv:vReview,sc:vScore,ot:vOther,pl:vPlan,pt:vPoint,tj:vTcj,wk:vWeek})[t]();count();window.scrollTo(0,0);}
 
 /* ===== ย้อนกลับทีละชั้น + หน้าแรก (พี่ฝน 29 ต.ค. 69) · ปัดกลับ/ปุ่ม Back ของเครื่องใช้ได้ ===== */
 var NAVST=[],NAVSKIP=false;
