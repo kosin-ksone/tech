@@ -385,6 +385,15 @@ function claimXlsx(name,btn){const t=TECHS_ALL.find(x=>x.name===name)||{name:nam
       G.I+=pt;G[AC]+=al;G.O+=pt+al;}
     const refs=L=>{const a=[];for(let k=0;k<31;k++)a.push(L+(15+9*k));return a.join('+');};
     ['C','I','J','K','L','N','O'].forEach(L=>F(L+'289',refs(L),G[L]||0));
+    const wd=wb.addWorksheet('รายละเอียดค่าจุด เบี้ยเลี้ยง');
+    wd.addRow(['รายละเอียด'+(bk?'ค่าจุด / เบี้ยเลี้ยง':'เบี้ยเลี้ยง ตจว.')+' · '+name+(t.nick?' ('+t.nick+')':'')+' · '+MONF[m]+' '+(y+543)+' (คิดตามกฎในชีต ENDO)']).font={bold:true,size:14};
+    wd.addRow(['วันที่','ประเภท','สถานที่ / จังหวัด','บาท','คิดจากรายงาน (งาน)','หมายเหตุ']).font={bold:true};let dt=0;
+    if(bk){pointRows(name).forEach(x=>{dt+=x.rate;wd.addRow([x.dateKey,x.zt==='b'?'ค่าจุด กทม.':'ค่าจุด ปริมณฑล',x.hospital,x.rate,x.recs.map(r=>r.code+' '+String(r.label||'').split(' — ')[0]).join(' · '),(x.skip&&x.skip.length?'คิดแค่จุดแรกจุดเดียว ไม่คิด '+x.skip.join(', ')+' (รพ. ใกล้กัน)':'')]);});
+      perDiemRows(name).forEach(x=>{dt+=x.amt;wd.addRow([x.dateKey,'เบี้ยเลี้ยงไป ตจว.',x.provs.join(', '),x.amt,x.recs.map(r=>r.hospital+' · '+r.code).join(' · '),'วันละครั้ง']);});}
+    else tcjRows(name).forEach(x=>{dt+=x.amt;wd.addRow([x.dateKey,'เบี้ยเลี้ยง ตจว. '+(x.half?'ครึ่งวัน':'เต็มวัน'),x.provs.join(', '),x.amt,x.recs.map(r=>r.hospital+' · '+r.code).join(' · '),'ออกนอกจังหวัดฐาน ('+baseOf(name,x.dateKey).join(', ')+') · ช่วงเวลา '+x.periods.join(', ')]);});
+    const wl=wd.addRow(['รวม','','',dt]);wl.font={bold:true};
+    [12,20,34,10,60,46].forEach((w,i)=>{wd.getColumn(i+1).width=w;});wd.getColumn(5).alignment={wrapText:true,vertical:'top'};wd.getColumn(6).alignment={wrapText:true,vertical:'top'};
+    wd.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
     wb.calcProperties.fullCalcOnLoad=true;
     return xlSave(wb,'ร่างใบเบิก ค่ารถและค่าใช้จ่าย '+name+' '+MONF[m]+' '+(y+543)+'.xlsx');
   }).catch(()=>alert('ทำใบเบิกไม่สำเร็จ ลองใหม่อีกครั้ง')).then(()=>xlBusy(btn,false));}
