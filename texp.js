@@ -4,7 +4,7 @@
    + ใบกรอกไมล์ (ฟลีทการ์ด/เติมเอง/ทางด่วน…) + รูปหน้าปัดไมล์ → ระบบ (ธงให้บัญชีดูคนเดียว)
    ดึง รพ. + ค่าจุด + เบี้ยเลี้ยง จากรายงานช่างให้เอง · ลงพิกัดบ้านครั้งแรก · ข้อมูลเก็บในเครื่อง (kosin_tech_exp_*) + ไฟล์สำรอง */
 (function(){
-var EXP_VER='v1.3 · 16 พ.ย. 69';
+var EXP_VER='v1.4 · 26 พ.ย. 69';
 function gOn(){ return !isBkk(); }   // ช่าง กทม. ขี่มอเตอร์ไซค์ → กรอกระยะเอง ไม่ใช้ Google (ระยะรถยนต์ยาวกว่าจริง) · พี่ฝน 16 พ.ย. 69
 var me=null;
 function T(){ return window.currentTech||(typeof currentTech!=='undefined'?currentTech:null); }
@@ -15,7 +15,15 @@ function isHoliday(k){ var i=dayInfo(k)||{}; return {off:!!i.off,why:i.name||'�
 function resizeDataURL(src,max,q){ return new Promise(function(res){ var im=new Image(); im.onload=function(){ var w=im.width,h=im.height,s=Math.min(1,max/Math.max(w,h)), c=document.createElement('canvas'); c.width=Math.round(w*s); c.height=Math.round(h*s); c.getContext('2d').drawImage(im,0,0,c.width,c.height); res(c.toDataURL('image/jpeg',q)); }; im.onerror=function(){ res(src); }; im.src=src; }); }
 function myRecsT(){ var t=T(); return t?getReports().filter(function(r){ return r.tech===t.name; }):[]; }
 var VEH={P:'รถส่วนตัว',C:'รถบริษัท',M:'มอเตอร์ไซค์',O:'ไปกับคนอื่น'}, VCOL={C:5,P:6,M:7,O:8};
-function ALWS(){ return isBkk()?[['n','ไม่มี',0],['h','ครึ่งวัน 125',125],['f','เต็มวัน 250',250]]:[['n','ไม่มี',0],['h','ครึ่งวัน 100',100],['f','เต็มวัน 200',200]]; }   // กทม → คอลัมน์ J · ตจว → K
+/* v1.4 26 พ.ย. 69 พี่ฝน: อัตราค่าจุด/เบี้ยเลี้ยงอ่านจากชีตกฎ ENDO (?op=endorules · ENDO แก้เอง · มีผลตั้งแต่ตามวันที่) · แคชในเครื่อง · โหลดไม่ได้ = ค่าตั้งต้นเดิม */
+var RULES=LS0('kosin_endorules',null);
+function LS0(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function RV(n,d,def){ if(!RULES) return def; var best=null,bf=''; RULES.forEach(function(r){ if(String(r[0]).trim()!==n) return; var f=String(r[2]||''); if(f&&d&&f>d) return; if(best===null||f>=bf){ best=r[1]; bf=f; } }); return best===null||best===''?def:best; }
+function RN(n,def){ return +RV(n,(expYM||'9999-12')+'-31',def)||0; }
+function RB(){ return RN('ค่าจุด กทม. (ช่าง กทม.)',75); } function RP(){ return RN('ค่าจุด ปริมณฑล (ช่าง กทม.)',100); }
+function loadRules(){ if(!window.SYNC_URL) return; fetch(SYNC_URL+'?op=endorules').then(function(r){return r.json();}).then(function(j){ if(!j||!j.ok||!j.rules) return; var ch=JSON.stringify(j.rules)!==JSON.stringify(RULES); RULES=j.rules; try{ localStorage.setItem('kosin_endorules',JSON.stringify(RULES)); }catch(e){} if(ch&&st&&document.getElementById('expOv')) render(); }).catch(function(){}); }
+function ALWS(){ var b=isBkk(), h=b?RN('เบี้ยเลี้ยงนอกเขต ครึ่งวัน (เช้า/บ่าย)',125):RN('เบี้ยเลี้ยง ช่าง ตจว. ครึ่งวัน',100), f=b?RN('เบี้ยเลี้ยงนอกเขต เต็มวัน',250):RN('เบี้ยเลี้ยง ช่าง ตจว. เต็มวัน',200);
+  return [['n','ไม่มี',0],['h','ครึ่งวัน '+h,h],['f','เต็มวัน '+f,f]]; }   // กทม → คอลัมน์ J · ตจว → K   // กทม → คอลัมน์ J · ตจว → K
 var LABELS=['วันหยุด','วันหยุดนักขัต','ลาพักร้อน','ลาป่วย','ลากิจ','ทำงานในเขต center','เข้าออฟฟิศ'];
 var MAXLEG=7, HOTEL_MAX=550, HOME_STAY=300, TRIP=[['300','เหมาทริป กทม 300'],['150','ครึ่งวัน 150']];
 var expYM='', expTab='trip', st=null;
@@ -61,7 +69,7 @@ function isHotel(s){ return /โรงแรม|hotel|รีสอร์ท|reso
 /* วันจากรายงาน (ยังไม่เคยแก้) */
 function dayRecs(k){ return myRecsT().filter(function(r){return r.dateKey===k;}).sort(function(a,b){return String(a.ts||'')<String(b.ts||'')?-1:1;}); }
 function reportPlaces(k){ var seen={}, out=[]; dayRecs(k).forEach(function(r){ var h=String(r.hospital||'').trim(); if(h&&!seen[h]){ seen[h]=1; out.push(h); } }); return out; }
-function reportPt(k,h){ var v=0; if(/^ออฟฟิศ/.test(h)) return 0; dayRecs(k).forEach(function(r){ if(String(r.hospital||'').trim()===h&&r.allowanceType==='ค่าจุด'&&num(r.travel)>v) v=num(r.travel); }); return v; }   // ค่าจุดตามที่แอปคิดตอนรายงาน (75/100)
+function reportPt(k,h){ var v=0; if(/^ออฟฟิศ/.test(h)) return 0; dayRecs(k).forEach(function(r){ if(String(r.hospital||'').trim()===h&&r.allowanceType==='ค่าจุด'&&num(r.travel)>v) v=num(r.travel); }); return v?(v>=100?RP():RB()):0; }   // ค่าจุดตามที่แอปคิดตอนรายงาน (75/100)
 function reportAlw(k){ var a='n'; dayRecs(k).forEach(function(r){ if(r.allowanceType==='เบี้ยเลี้ยง'&&num(r.travel)>0) a=(/ครึ่ง/.test(r.period||'')&&a!=='f')?'h':'f'; }); return a; }
 function reportOt(k){ return dayRecs(k).some(function(r){ return !!r.ot; }); }
 function prevEnd(k,depth){ var p=addDays(k,-1); if(p.slice(0,7)!==expYM||(depth||0)>31) return ''; var d=st.days[p]||autoDay(p,(depth||0)+1); if(d&&d.legs&&d.legs.length){ var t=d.legs[d.legs.length-1].to; if(isHotel(t)||isHome(t,prof())) return t; } return prevEnd(p,(depth||0)+1); }
@@ -119,7 +127,7 @@ var CSS='<style id="expCss">'
  +'@keyframes xbl{50%{opacity:.45}}.xbusy{animation:xbl .8s infinite}'
  +'</style>';
 
-window.openExpense=function(ym){
+window.openExpense=function(ym){ loadRules();
   var t=T(); if(!t) return; me={nick:t.name,full:t.name}; setupSkip=false;
   try{ syncPull(); }catch(e){}
   if(!document.getElementById('expCss')) document.head.insertAdjacentHTML('beforeend',CSS);
@@ -210,7 +218,7 @@ function dayHtml(k,P){
     var pv=provOf(l.to), out=pv&&!inCenter(pv,P.center), need=!(num(l.km)>0);
     h+='<div class="xleg"><span class="ar">→</span><input class="pl" value="'+E(l.to)+'" placeholder="ไปที่" onchange="expLeg(\''+k+'\','+i+',\'to\',this.value)">'
       +'<input class="km'+(need?' need':'')+'" inputmode="decimal" value="'+E(l.km)+'" placeholder="กม." oninput="expKm(\''+k+'\','+i+',this)" onchange="expKmDone(\''+k+'\','+i+')">'
-      +(isBkk()?'<select class="pt" title="ค่าจุด" onchange="expLeg(\''+k+'\','+i+',\'pt\',this.value)">'+[['','จุด –'],['75','75'],['100','100']].map(function(o){ return '<option value="'+o[0]+'"'+(String(l.pt||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select>':'')
+      +(isBkk()?'<select class="pt" title="ค่าจุด" onchange="expLeg(\''+k+'\','+i+',\'pt\',this.value)">'+[['','จุด –'],[String(RB()),String(RB())],[String(RP()),String(RP())]].map(function(o){ return '<option value="'+o[0]+'"'+(String(l.pt||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select>':'')
       +'<button class="x" onclick="expRmLeg(\''+k+'\','+i+')">×</button></div>'
       +(gOn()&&need&&from&&l.to?'<div class="xpv"><button class="xsug" data-k="'+k+'" data-i="'+i+'" onclick="expSug(this)">≈ หาระยะจาก Google Maps</button></div>':'')
       +(pv?'<div class="xpv'+(out?' out':'')+'">'+(pv==='ปริมณฑล'?'':'จ.')+E(pv)+(out?' · นอกเขต center':'')+'</div>':'');
