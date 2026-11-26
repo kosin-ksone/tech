@@ -109,7 +109,10 @@ const RB=d=>+RV('ค่าจุด กทม. (ช่าง กทม.)',d,75)|
 const PARL=d=>String(RV('จังหวัดปริมณฑล',d,PAR.join(', '))).split(/\s*,\s*/).map(x=>x.trim()).filter(String);
 const OFFW=d=>String(RV('ไม่คิดค่าจุด',d,'')).split(/\s*,\s*/).map(x=>x.trim()).filter(x=>x&&x!=='ออฟฟิศ');
 const mEnd=()=>month+'-31';
-function loadRules(){if(!SYNC_URL)return;fetch(SYNC_URL+'?op=endorules').then(r=>r.json()).then(j=>{if(!j||!j.ok||!j.rules)return;RULES=j.rules;if(!$('#app').classList.contains('hidden')&&(tab==='pt'||tab==='ov'))go(tab);}).catch(()=>{});}   // เบี้ยเลี้ยง ช่าง กทม. ไป ตจว. ต่อวัน (เท่าช่าง ตจว. · พี่ฝน 29 ต.ค. 69)
+/* 26 พ.ย. 69 พี่ฝน: แท็บ "รพ. ค่าจุด 100 (แก้ไขได้)" ENDO เพิ่ม/ลบ รพ. เอง · ใช้ตั้งแต่ HL0 · ก่อนนั้น = ตามจังหวัดปริมณฑลแบบเดิม */
+const HL0='2026-12-01';let HOS=null,HM=null;
+function hosRate(h,d){if(!HOS||!d||d<HL0)return null;if(!HM){HM={};HOS.forEach(r=>{const k=HN(r[0]);(HM[k]||(HM[k]=[])).push(r);});}const z=zoneOf(h),ks=[HN(h)];if(z)ks.push(HN(z.name));let best=null,bf='';ks.forEach(k=>(HM[k]||[]).forEach(r=>{const f=r[2]||'',t=r[3]||'';if(f&&f>d)return;if(t&&t<d)return;if(best===null||f>=bf){best=+r[1]||0;bf=f;}}));return best;}
+function loadRules(){if(!SYNC_URL)return;fetch(SYNC_URL+'?op=endorules').then(r=>r.json()).then(j=>{if(!j||!j.ok||!j.rules)return;RULES=j.rules;HOS=j.hos||null;HM=null;if(!$('#app').classList.contains('hidden')&&(tab==='pt'||tab==='ov'))go(tab);}).catch(()=>{});}   // เบี้ยเลี้ยง ช่าง กทม. ไป ตจว. ต่อวัน (เท่าช่าง ตจว. · พี่ฝน 29 ต.ค. 69)
 const HN=s=>String(s||'').toLowerCase().replace(/โรงพยาบาล|รพ\.?|\s|\.|-|\(|\)/g,'');
 const H_ALIAS={'medpark':'โรงพยาบาลเมดพาร์ค','medparkhospital':'โรงพยาบาลเมดพาร์ค'};
 let ZN=null;function lev1(a,b){if(Math.abs(a.length-b.length)>1)return false;let i=0,j=0,d=0;while(i<a.length&&j<b.length){if(a[i]===b[j]){i++;j++;continue;}if(++d>1)return false;if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++;}}return d+(a.length-i)+(b.length-j)<=1;}
@@ -122,7 +125,8 @@ const pv=a=>(a==='กทม.'||a==='กทม')?'กทม':a;
 // ประเภทของรายงาน 1 ใบ (ช่าง กทม.): off=ออฟฟิศ · pt=ค่าจุด(rate) · pd=เบี้ยเลี้ยง ตจว. · unk=ไม่รู้เขต รอตรวจ
 function classify(r){const dk=r.dateKey||TODAY;if(isOffice(r.hospital)||OFFW(dk).some(w=>String(r.hospital||'').indexOf(w)>=0))return{k:'off'};const z=zoneOf(r.hospital);let p=z?z.p:null;
   if(!p&&/^(เบี้ยเลี้ยง|ค่าจุด \(รอพิจารณา\)|ฐาน)/.test(r.allow||'')&&r.area)p=pv(r.area);   // ชื่อพิมพ์เอง แต่แอปรู้จังหวัด
-  if(!p)return{k:'unk'};if(p==='กทม')return{k:'pt',rate:RB(dk),zt:'b',z:z};if(PARL(dk).indexOf(p)>=0)return{k:'pt',rate:RP(dk),zt:'p',z:z};return{k:'pd',prov:p==='ต่างจังหวัด'?'ต่างจังหวัด':p,amt:PDA(dk),z:z};}
+  const hr=hosRate(r.hospital,dk);if(hr!=null)return{k:'pt',rate:hr,zt:'p',z:z};   // อยู่ในรายชื่อ รพ. ค่าจุด 100
+  if(!p)return{k:'unk'};if(p==='กทม'||(HOS&&dk>=HL0&&z&&PARL(dk).indexOf(p)>=0))return{k:'pt',rate:RB(dk),zt:'b',z:z};if(PARL(dk).indexOf(p)>=0)return{k:'pt',rate:RP(dk),zt:'p',z:z};return{k:'pd',prov:p==='ต่างจังหวัด'?'ต่างจังหวัด':p,amt:PDA(dk),z:z};}
 function rateOf(h){const c=classify({hospital:h});return c.k==='pt'?c.rate:0;}
 function photo(label,hue){const svg='<svg xmlns="http://www.w3.org/2000/svg" width="240" height="180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl('+hue+',45%,72%)"/><stop offset="1" stop-color="hsl('+((hue+40)%360)+',40%,90%)"/></linearGradient></defs><rect width="240" height="180" fill="url(#g)"/><text x="120" y="98" font-family="Tahoma" font-size="20" text-anchor="middle" fill="rgba(0,0,0,.55)">'+label+'</text></svg>';
   return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);}

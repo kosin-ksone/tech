@@ -4,7 +4,7 @@
    + ใบกรอกไมล์ (ฟลีทการ์ด/เติมเอง/ทางด่วน…) + รูปหน้าปัดไมล์ → ระบบ (ธงให้บัญชีดูคนเดียว)
    ดึง รพ. + ค่าจุด + เบี้ยเลี้ยง จากรายงานช่างให้เอง · ลงพิกัดบ้านครั้งแรก · ข้อมูลเก็บในเครื่อง (kosin_tech_exp_*) + ไฟล์สำรอง */
 (function(){
-var EXP_VER='v1.4 · 26 พ.ย. 69';
+var EXP_VER='v1.5 · 26 พ.ย. 69';
 function gOn(){ return !isBkk(); }   // ช่าง กทม. ขี่มอเตอร์ไซค์ → กรอกระยะเอง ไม่ใช้ Google (ระยะรถยนต์ยาวกว่าจริง) · พี่ฝน 16 พ.ย. 69
 var me=null;
 function T(){ return window.currentTech||(typeof currentTech!=='undefined'?currentTech:null); }
@@ -21,7 +21,11 @@ function LS0(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d;
 function RV(n,d,def){ if(!RULES) return def; var best=null,bf=''; RULES.forEach(function(r){ if(String(r[0]).trim()!==n) return; var f=String(r[2]||''); if(f&&d&&f>d) return; if(best===null||f>=bf){ best=r[1]; bf=f; } }); return best===null||best===''?def:best; }
 function RN(n,def){ return +RV(n,(expYM||'9999-12')+'-31',def)||0; }
 function RB(){ return RN('ค่าจุด กทม. (ช่าง กทม.)',75); } function RP(){ return RN('ค่าจุด ปริมณฑล (ช่าง กทม.)',100); }
-function loadRules(){ if(!window.SYNC_URL) return; fetch(SYNC_URL+'?op=endorules').then(function(r){return r.json();}).then(function(j){ if(!j||!j.ok||!j.rules) return; var ch=JSON.stringify(j.rules)!==JSON.stringify(RULES); RULES=j.rules; try{ localStorage.setItem('kosin_endorules',JSON.stringify(RULES)); }catch(e){} if(ch&&st&&document.getElementById('expOv')) render(); }).catch(function(){}); }
+/* 26 พ.ย. 69: รายชื่อ รพ. ค่าจุด 100 (ENDO แก้เอง) ใช้ตั้งแต่ HL0 */
+var HL0='2026-12-01', HOS=LS0('kosin_endohos',null);
+function HNt(s){ return String(s||'').toLowerCase().replace(/โรงพยาบาล|รพ\.?|\s|\.|-|\(|\)/g,''); }
+function hosRate(h,d){ if(!HOS||!d||d<HL0) return null; var n=HNt(h),best=null,bf=''; HOS.forEach(function(r){ if(HNt(r[0])!==n) return; var f=r[2]||'',t=r[3]||''; if(f&&f>d) return; if(t&&t<d) return; if(best===null||f>=bf){ best=+r[1]||0; bf=f; } }); return best; }
+function loadRules(){ if(!window.SYNC_URL) return; fetch(SYNC_URL+'?op=endorules').then(function(r){return r.json();}).then(function(j){ if(!j||!j.ok||!j.rules) return; var ch=JSON.stringify(j.rules)!==JSON.stringify(RULES); if(j.hos&&JSON.stringify(j.hos)!==JSON.stringify(HOS)){ HOS=j.hos; ch=true; try{ localStorage.setItem('kosin_endohos',JSON.stringify(HOS)); }catch(e){} } RULES=j.rules; try{ localStorage.setItem('kosin_endorules',JSON.stringify(RULES)); }catch(e){} if(ch&&st&&document.getElementById('expOv')) render(); }).catch(function(){}); }
 function ALWS(){ var b=isBkk(), h=b?RN('เบี้ยเลี้ยงนอกเขต ครึ่งวัน (เช้า/บ่าย)',125):RN('เบี้ยเลี้ยง ช่าง ตจว. ครึ่งวัน',100), f=b?RN('เบี้ยเลี้ยงนอกเขต เต็มวัน',250):RN('เบี้ยเลี้ยง ช่าง ตจว. เต็มวัน',200);
   return [['n','ไม่มี',0],['h','ครึ่งวัน '+h,h],['f','เต็มวัน '+f,f]]; }   // กทม → คอลัมน์ J · ตจว → K   // กทม → คอลัมน์ J · ตจว → K
 var LABELS=['วันหยุด','วันหยุดนักขัต','ลาพักร้อน','ลาป่วย','ลากิจ','ทำงานในเขต center','เข้าออฟฟิศ'];
@@ -69,7 +73,7 @@ function isHotel(s){ return /โรงแรม|hotel|รีสอร์ท|reso
 /* วันจากรายงาน (ยังไม่เคยแก้) */
 function dayRecs(k){ return myRecsT().filter(function(r){return r.dateKey===k;}).sort(function(a,b){return String(a.ts||'')<String(b.ts||'')?-1:1;}); }
 function reportPlaces(k){ var seen={}, out=[]; dayRecs(k).forEach(function(r){ var h=String(r.hospital||'').trim(); if(h&&!seen[h]){ seen[h]=1; out.push(h); } }); return out; }
-function reportPt(k,h){ var v=0; if(/^ออฟฟิศ/.test(h)) return 0; dayRecs(k).forEach(function(r){ if(String(r.hospital||'').trim()===h&&r.allowanceType==='ค่าจุด'&&num(r.travel)>v) v=num(r.travel); }); return v?(v>=100?RP():RB()):0; }   // ค่าจุดตามที่แอปคิดตอนรายงาน (75/100)
+function reportPt(k,h){ var v=0,any=0; if(/^ออฟฟิศ/.test(h)) return 0; dayRecs(k).forEach(function(r){ if(String(r.hospital||'').trim()!==h) return; if(/^ค่าจุด/.test(r.allowanceType||'')) any=1; if(r.allowanceType==='ค่าจุด'&&num(r.travel)>v) v=num(r.travel); }); var hr=hosRate(h,k); if(hr!=null&&any) return hr; if(!v) return 0; return (HOS&&k>=HL0)?RB():(v>=100?RP():RB()); }   // ค่าจุดตามที่แอปคิดตอนรายงาน (75/100)
 function reportAlw(k){ var a='n'; dayRecs(k).forEach(function(r){ if(r.allowanceType==='เบี้ยเลี้ยง'&&num(r.travel)>0) a=(/ครึ่ง/.test(r.period||'')&&a!=='f')?'h':'f'; }); return a; }
 function reportOt(k){ return dayRecs(k).some(function(r){ return !!r.ot; }); }
 function prevEnd(k,depth){ var p=addDays(k,-1); if(p.slice(0,7)!==expYM||(depth||0)>31) return ''; var d=st.days[p]||autoDay(p,(depth||0)+1); if(d&&d.legs&&d.legs.length){ var t=d.legs[d.legs.length-1].to; if(isHotel(t)||isHome(t,prof())) return t; } return prevEnd(p,(depth||0)+1); }
