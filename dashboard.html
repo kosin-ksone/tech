@@ -220,17 +220,18 @@ function perDiemRows(name){const g={};RECS.filter(r=>r.tech===name&&inMonth(r)&&
 // ===== views =====
 function vOverview(){
   const m=RECS.filter(inMonth),wait=m.filter(r=>r.status==='รอตรวจ'||r.status==='รอเอกสาร').length,ok=m.filter(r=>r.status==='ผ่าน'),no=m.filter(r=>r.status==='ไม่ผ่าน').length;
-  const pts=ok.reduce((a,r)=>a+r.pt,0),money=TECHS.filter(isBkk).reduce((a,t)=>a+pointRows(t.name).reduce((b,x)=>b+x.rate,0),0);
+  const pts=ok.reduce((a,r)=>a+r.pt,0),money=TECHS.filter(isBkk).reduce((a,t)=>a+pointRows(t.name).reduce((b,x)=>b+x.rate,0),0),tcjM=TECHS.filter(t=>!isBkk(t)).reduce((a,t)=>a+tcjRows(t.name).reduce((b,x)=>b+x.amt,0),0);
   const ws=monOf(TODAY),days=Array.from({length:7},(_,i)=>addD(ws,i));
   let h='<div class="cards"><div class="kpi"><div class="l">รายงาน (เดือนนี้)</div><div class="v" style="color:var(--ok)">'+m.length+'</div><div class="s">งาน · คะแนนนับอัตโนมัติ</div></div>'+
     '<div class="kpi"><div class="l">นับคะแนน</div><div class="v" style="color:var(--ok)">'+ok.length+'</div><div class="s">ไม่นับ '+no+' งาน</div></div>'+
     '<div class="kpi"><div class="l">คะแนนรวม</div><div class="v">'+pts.toLocaleString()+'</div><div class="s">ช่าง '+TECHS.length+' คน</div></div>'+
-    '<div class="kpi"><div class="l">ค่าจุด กทม.+ปริมณฑล</div><div class="v">฿'+money.toLocaleString()+'</div><div class="s">นับอัตโนมัติ</div></div></div>';
-  h+='<div class="box"><h3>ส่งรายงานสัปดาห์นี้ ('+thD(days[0])+' – '+thD(days[6])+')</h3><table><tr><th>ช่าง</th>'+days.map(k=>'<th class="n">'+thD(k).split(' ').slice(0,2).join(' ')+'</th>').join('')+'<th class="n">คะแนน<br><span style="font-weight:400;font-size:11px">'+MON[+month.slice(5)-1]+'</span></th><th class="n">ค่าจุด<br><span style="font-weight:400;font-size:11px">'+MON[+month.slice(5)-1]+'</span></th></tr>';
+    '<div class="kpi"><div class="l">ค่าจุด ช่าง กทม.</div><div class="v">฿'+money.toLocaleString()+'</div><div class="s">นับอัตโนมัติ</div></div>'+
+    '<div class="kpi"><div class="l">เบี้ยเลี้ยง ช่าง ตจว.</div><div class="v">฿'+tcjM.toLocaleString()+'</div><div class="s">ออกนอกจังหวัดฐาน · นับอัตโนมัติ</div></div></div>';
+  h+='<div class="box"><h3>ส่งรายงานสัปดาห์นี้ ('+thD(days[0])+' – '+thD(days[6])+')</h3><table><tr><th>ช่าง</th>'+days.map(k=>'<th class="n">'+thD(k).split(' ').slice(0,2).join(' ')+'</th>').join('')+'<th class="n">คะแนน<br><span style="font-weight:400;font-size:11px">'+MON[+month.slice(5)-1]+'</span></th><th class="n">ค่าจุด / เบี้ยเลี้ยง<br><span style="font-weight:400;font-size:11px">'+MON[+month.slice(5)-1]+'</span></th></tr>';
   TECHS.forEach(t=>{h+='<tr class="click" data-tech="'+esc(t.name)+'"><td><b>'+esc(dnT(t))+'</b></td>'+days.map(k=>{const n=RECS.filter(r=>r.tech===t.name&&r.dateKey===k).length,dd=kd(k).getDay();
       return '<td class="n">'+(k>TODAY?'':(n?'<span class="chip '+(RECS.some(r=>r.tech===t.name&&r.dateKey===k&&r.lateDays)?'c-late':'c-ok')+'">'+n+'</span>':(dd===0||dd===6?'<span class="chip c-no">หยุด</span>':'<span class="chip c-off">–</span>')))+'</td>';}).join('')+
-    (()=>{const tp=m.filter(r=>r.tech===t.name&&r.status==='ผ่าน').reduce((a,r)=>a+r.pt,0),tm=isBkk(t)?pointRows(t.name).reduce((a,x)=>a+x.rate,0):null;
-      return '<td class="n"><b>'+(tp||'')+'</b></td><td class="n">'+(tm===null?'<span style="color:var(--mut);font-size:11px">ตจว.</span>':(tm?'฿'+tm.toLocaleString():''))+'</td>';})()+'</tr>';});
+    (()=>{const tp=m.filter(r=>r.tech===t.name&&r.status==='ผ่าน').reduce((a,r)=>a+r.pt,0),tm=isBkk(t)?pointRows(t.name).reduce((a,x)=>a+x.rate,0):null,tj=isBkk(t)?0:tcjRows(t.name).reduce((a,x)=>a+x.amt,0);
+      return '<td class="n"><b>'+(tp||'')+'</b></td><td class="n">'+(tm===null?(tj?'฿'+tj.toLocaleString()+'<div style="color:var(--mut);font-size:10.5px">เบี้ยเลี้ยง ตจว.</div>':''):(tm?'฿'+tm.toLocaleString():''))+'</td>';})()+'</tr>';});
   h+='</table><div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:2"><span class="chip c-ok">2</span> = ส่งตรงวัน · <span class="chip c-late">2</span> = ส่งสาย (ส่งย้อนหลัง หลังวันที่ทำงาน) · <span class="chip c-off">–</span> = ไม่มีรายงาน · <span class="chip c-no">หยุด</span> = เสาร์–อาทิตย์ · ตัวเลข = จำนวนงานที่ส่ง · คะแนน/ค่าจุด = เดือนที่เลือก นับอัตโนมัติทุกงานที่ส่ง (ยกเว้นที่กด ไม่นับ · ค่าจุดเฉพาะช่าง กทม.+ปริมณฑล) · แตะชื่อช่างเพื่อดูงานของคนนั้น</div></div>';
   $('#view').innerHTML=h;
   document.querySelectorAll('[data-tech]').forEach(tr=>tr.onclick=()=>{fTech=tr.dataset.tech;fStat='ทั้งหมด';go('rv');});
