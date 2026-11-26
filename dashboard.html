@@ -34,6 +34,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
 .rec .h{font-weight:800}.rec .m{font-size:12px;color:var(--mut)}.rec .d{font-size:13px;margin-top:4px}.rec .p{font-size:12.5px;color:var(--no);margin-top:2px}
 .rec .ph{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.rec .ph img{width:92px;height:69px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
 .rec .act{display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:130px}
+body.ro [data-ok],body.ro [data-no],body.ro [data-undo]{display:none!important}@keyframes xbl{50%{opacity:.45}}.blink{animation:xbl .8s infinite}
 .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
 .btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}.btn.no{background:#fff;border-color:#f1b8b4;color:var(--no)}.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
 .pts{font-size:20px;font-weight:800;color:var(--brand)}.pts small{font-size:11px;color:var(--mut);font-weight:400}
@@ -53,7 +54,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
 <div id="login" class="login">
   <img src="endo-logo.png" alt="ENDOSCOPE & SERVICE">
   <div style="font-weight:800;color:var(--brand);margin-top:10px">Dashboard ตรวจรายงานช่าง</div>
-  <select id="rvSel" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;margin:14px 0 0;font-size:15px;text-align:center;background:#fff"><option value="">— เลือกชื่อผู้ตรวจ —</option><option value="ยุ้ย (ศุภรัตน์ ซ้ายสุข)">ศุภรัตน์ ซ้ายสุข (ยุ้ย)</option><option value="เปิ้ล (ดาวรุ่ง วงศ์สารัตน์)">ดาวรุ่ง วงศ์สารัตน์ (เปิ้ล)</option><option value="คุณโกสีห์ (KOSIE)">โกสีห์ ยงยุคันธร (พี่จ๋าย)</option><option value="__other">อื่นๆ (พิมพ์ชื่อเอง)</option></select>
+  <select id="rvSel" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;margin:14px 0 0;font-size:15px;text-align:center;background:#fff"><option value="">— เลือกชื่อผู้ตรวจ —</option><option value="ยุ้ย (ศุภรัตน์ ซ้ายสุข)">ศุภรัตน์ ซ้ายสุข (ยุ้ย)</option><option value="เปิ้ล (ดาวรุ่ง วงศ์สารัตน์)">ดาวรุ่ง วงศ์สารัตน์ (เปิ้ล)</option><option value="คุณโกสีห์ (KOSIE)">โกสีห์ ยงยุคันธร (พี่จ๋าย)</option><option value="ดิว (ณัฐวดี ผลเกิด)">ณัฐวดี ผลเกิด (ดิว)</option><option value="นุ่น (วาสินี แก้วกัน)">วาสินี แก้วกัน (นุ่น)</option><option value="__other">อื่นๆ (พิมพ์ชื่อเอง)</option></select>
   <input id="rvName" class="hidden" placeholder="พิมพ์ชื่อผู้ตรวจ" autocomplete="name" style="margin-bottom:0">
   <input id="pw" type="password" placeholder="รหัสผ่าน" autocomplete="current-password">
   <div class="err" id="pwErr"></div>
@@ -65,7 +66,7 @@ td.n,th.n{text-align:right}tr.click{cursor:pointer}tr.click:hover td{background:
     <img src="endo-logo.png" alt="ENDO"><button id="navBack" class="navb hidden" type="button" onclick="navBack()">‹ ย้อนกลับ</button><button id="navHome" class="navb hidden" type="button" onclick="navHome()">🏠 หน้าแรก</button>
     <div class="t">Dashboard ตรวจรายงานช่าง<small>คะแนน · ค่าจุด · รายงานรายสัปดาห์</small></div>
     <div class="sp"></div>
-    <button class="btn" id="kpBell" style="display:none;position:relative;font-size:18px" onclick="kpBellOpen()">🔔</button><select id="selMonth"></select>
+    <button class="btn" id="kpBell" style="display:none;position:relative;font-size:18px" onclick="kpBellOpen()">🔔</button><button class="btn" id="xlBtn" title="โหลดรายงาน คะแนน ค่าจุด เป็น Excel">📊 Excel</button><select id="selMonth"></select>
     <span id="who" style="font-size:12.5px;color:var(--brand);font-weight:700"></span>
     <button class="btn" id="logout">ออก</button>
   </div>
@@ -353,7 +354,7 @@ function navBack(){if(NAVST.length)history.back();}
 function navHome(){if(NAVST.length)history.go(-NAVST.length);else{NAVSKIP=true;go('ov');navPaint();}}
 setTimeout(navPaint,0);
 // ===== บันทึกผลตรวจเข้าระบบกลาง (เฉพาะข้อมูลจริง) =====
-function postRev(id,s,reason){if(!LIVE||sampleOn())return;fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:'tech',op:'review',id:id,status:s,by:REVIEWER,reason:reason||''})}).then(r=>r.json()).then(j=>{if(!j.ok)throw 0;}).catch(()=>alert('บันทึกผลตรวจเข้าระบบไม่สำเร็จ — เช็กเน็ตแล้วกดใหม่อีกครั้งนะคะ'));}
+function postRev(id,s,reason){if(!LIVE||sampleOn()||isRO())return;fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({app:'tech',op:'review',id:id,status:s,by:REVIEWER,reason:reason||''})}).then(r=>r.json()).then(j=>{if(!j.ok)throw 0;}).catch(()=>alert('บันทึกผลตรวจเข้าระบบไม่สำเร็จ — เช็กเน็ตแล้วกดใหม่อีกครั้งนะคะ'));}
 function visitKey(r){var m=String(r.desc||r.detail||'').match(/เวลา\s*(\d{1,2})[.:](\d{2})/);if(m)return ('0'+m[1]).slice(-2)+':'+m[2];var t=r.ts||r.savedAt;if(!t)return '99:99';var d=new Date(t);return isNaN(d)?'99:99':('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}   // เวลาไปจริง (จากรายละเอียด) > เวลาที่บันทึก
 // ===== start =====
 function months(){const s=$('#selMonth');const ms=[...new Set(RECS.map(r=>r.dateKey.slice(0,7)).concat([TODAY.slice(0,7)]))].sort().reverse();
@@ -363,7 +364,7 @@ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(b.dataset
 $('#logout').onclick=()=>{try{sessionStorage.removeItem('endo_dash')}catch(e){}location.reload();};
 const SYNC_URL=(window.APP_CONFIG&&window.APP_CONFIG.SYNC_URL)||'';let LIVE=false,liveAt=null;
 function loadLive(){if(!SYNC_URL||sampleOn())return;LIVE=false;demoBar();const n=new Date(),from=dk(new Date(n.getFullYear(),n.getMonth()-11,1));
-  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,allow:o.allowanceType||'',area:o.area||'',ts:o.ts||o.savedAt,warn:mkWarn(o,o.dateKey),locAt:o.locWarn?o.locWarn.at:'',notes:o.notes||[]}));LIVE=true;kpBellPaint();liveAt=new Date();months();demoBar();go(tab);})
+  fetch(SYNC_URL+'?op=list&app=tech&from='+from).then(r=>r.json()).then(j=>{if(!j||!j.ok)throw 0;if(sampleOn())return;RECS=j.list.map(o=>({id:o.id,tech:o.tech,dateKey:o.dateKey,hospital:o.hospital,code:o.code,label:o.label,pt:+o.points||0,desc:o.desc||'',note:o.note||'',photos:o.photos||[],status:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'ผ่าน':o.status,by:(!o.status||o.status==='รอตรวจ'||o.status==='รอเอกสาร')?'อัตโนมัติ':(o.by||''),reason:o.reason||'',at:o.at||'',lateDays:+o.lateDays||0,allow:o.allowanceType||'',travel:+o.travel||0,period:o.period||'',area:o.area||'',ts:o.ts||o.savedAt,warn:mkWarn(o,o.dateKey),locAt:o.locWarn?o.locWarn.at:'',notes:o.notes||[]}));LIVE=true;kpBellPaint();liveAt=new Date();months();demoBar();go(tab);})
   .catch(()=>{$('#demoBar').innerHTML='⚠️ โหลดรายงานไม่สำเร็จ (เน็ต/ระบบ) · <a href="#" onclick="loadLive();return false">ลองใหม่</a>';});}
 const liveBar=()=>LIVE?'🟢 รายงานจริงจากแอปช่าง '+RECS.length+' รายการ · อัปเดต '+String(liveAt.getHours()).padStart(2,'0')+':'+String(liveAt.getMinutes()).padStart(2,'0')+' · <a href="#" onclick="loadLive();return false">โหลดใหม่</a> · <a href="#" id="sampleOn">ดูข้อมูลตัวอย่าง</a>'
   :'⏳ กำลังโหลดรายงานจากแอปช่าง...';
@@ -373,7 +374,7 @@ function demoBar(){const on=sampleOn();$('#demoBar').innerHTML=(on?'🧪 กำ�
   if(a)a.onclick=e=>{e.preventDefault();try{localStorage.setItem(SKEY,'1')}catch(x){}seed=7;RECS=buildDemo();applyRev();months();demoBar();go(tab);};
   if(b)b.onclick=e=>{e.preventDefault();try{localStorage.removeItem(SKEY)}catch(x){}RECS=[];months();demoBar();go(tab);loadLive();};
   if(c)c.onclick=e=>{e.preventDefault();try{localStorage.removeItem(KEY)}catch(x){}seed=7;RECS=buildDemo();go(tab);};}
-function enter(){$('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#who').textContent='ผู้ตรวจ: '+(({'ยุ้ย (ศุภรัตน์ ซ้ายสุข)':'ศุภรัตน์ ซ้ายสุข (ยุ้ย)','เปิ้ล (ดาวรุ่ง วงศ์สารัตน์)':'ดาวรุ่ง วงศ์สารัตน์ (เปิ้ล)','คุณโกสีห์ (KOSIE)':'โกสีห์ ยงยุคันธร (พี่จ๋าย)'})[REVIEWER]||REVIEWER);demoBar();go('ov');loadLive();}
+function enter(){$('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#who').textContent='ผู้ตรวจ: '+(({'ยุ้ย (ศุภรัตน์ ซ้ายสุข)':'ศุภรัตน์ ซ้ายสุข (ยุ้ย)','เปิ้ล (ดาวรุ่ง วงศ์สารัตน์)':'ดาวรุ่ง วงศ์สารัตน์ (เปิ้ล)','คุณโกสีห์ (KOSIE)':'โกสีห์ ยงยุคันธร (พี่จ๋าย)','ดิว (ณัฐวดี ผลเกิด)':'ณัฐวดี ผลเกิด (ดิว)','นุ่น (วาสินี แก้วกัน)':'วาสินี แก้วกัน (นุ่น)'})[REVIEWER]||REVIEWER);document.body.classList.toggle('ro',isRO());demoBar();go('ov');loadLive();}
 (function(){let v='';try{v=localStorage.getItem('endo_dash_reviewer')||''}catch(e){}const q=new URLSearchParams(location.search).get('rv');if(q==='kosie')v='คุณโกสีห์ (KOSIE)';const sel=$('#rvSel');   // ?rv=kosie = ลิงก์จากแอป KOSIE เลือกชื่อให้
   if(v){if([...sel.options].some(o=>o.value===v))sel.value=v;else{sel.value='__other';$('#rvName').classList.remove('hidden');$('#rvName').value=v;}}
   sel.onchange=()=>{$('#rvName').classList.toggle('hidden',sel.value!=='__other');if(sel.value==='__other')$('#rvName').focus();};})();
@@ -448,4 +449,38 @@ const KOSIE_H='d935041312d7ea4e6ecc8482eb389194ebfc551fbcef84725f4b80f9257f0dd1'
 })();
 </script>
 
+<script>
+/* ===== 25 พ.ย. 69 พี่ฝน: ผู้ตรวจ ENDO ดิว/นุ่น (ดู + โหลด Excel อย่างเดียว) · ปุ่มโหลด Excel 4 แท็บ ===== */
+const RO_NAMES=[];   // 25 พ.ย. 69 พี่ฝน: ดิว/นุ่น สิทธิ์เท่ายุ้ย/เปิ้ล (ตรวจได้) · ใส่ชื่อในนี้ = ดูอย่างเดียว
+function isRO(){return RO_NAMES.indexOf(REVIEWER)>=0;}
+function xlNeed(){return window.ExcelJS?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+function xlOpen(){const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:center;justify-content:center';
+  const mL=($('#selMonth').selectedOptions[0]||{}).text||month;
+  o.innerHTML='<div style="background:#fff;border-radius:16px;padding:20px;max-width:360px;width:90%;text-align:center"><div style="font-weight:800;color:var(--brand);font-size:17px;margin-bottom:6px">📊 โหลด Excel</div><div style="font-size:12.5px;color:var(--mut);margin-bottom:14px">รายงานทั้งหมด · คะแนนช่าง · ค่าจุด+เบี้ยเลี้ยง (สรุป + รายละเอียด)</div>'
+   +'<button class="btn pri" style="width:100%;margin-bottom:8px" data-x="m">เดือน '+esc(mL)+'</button><button class="btn" style="width:100%;margin-bottom:8px" data-x="a">ทั้งหมด (12 เดือนที่มีในระบบ)</button><button class="btn" style="width:100%" data-x="c">ยกเลิก</button></div>';
+  document.body.appendChild(o);o.onclick=e=>{const b=e.target.closest('[data-x]');if(!b&&e.target!==o)return;o.remove();if(b&&b.dataset.x!=='c')xlBuild(b.dataset.x==='a');};}
+function xlBuild(all){if(!LIVE&&!sampleOn()){alert('ยังโหลดรายงานไม่เสร็จ รอสักครู่แล้วลองใหม่');return;}
+  const btn=$('#xlBtn');btn.disabled=true;btn.classList.add('blink');btn.textContent='⏳ กำลังทำไฟล์…';
+  xlNeed().then(()=>{const keep=month,ms=all?[...new Set(RECS.map(r=>r.dateKey.slice(0,7)))].sort():[month];
+    const wb=new ExcelJS.Workbook(),hdr=ws=>{ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF8A5A3C'}};ws.views=[{state:'frozen',ySplit:1}];ws.autoFilter={from:{row:1,column:1},to:{row:1,column:ws.columnCount}};};
+    const pay=r=>{const c=classify(r);return c.k==='pt'?'ค่าจุด '+c.rate:c.k==='pd'?'เบี้ยเลี้ยง '+PD_AMT:c.k==='off'?'ออฟฟิศ (ไม่คิด)':c.k==='unk'?'ไม่อยู่ในรายชื่อ (ตรวจ)':'ไม่คิด';};
+    const reg=n=>{const t=TECHS.find(x=>x.name===n);return t?(isBkk(t)?'กทม.':'ตจว.'):'';};
+    const cols=(ws,a)=>{ws.columns=a.map(([h,w])=>({header:h,width:w}));};
+    const w1=wb.addWorksheet('รายงานทั้งหมด');cols(w1,[['วันที่',11],['ช่าง',30],['เขตช่าง',8],['สถานที่',34],['จังหวัด',14],['รหัสงาน',8],['งาน',34],['รายละเอียด',34],['คะแนน',7],['สถานะ',10],['ผู้ตรวจ',18],['เหตุผล',20],['ระบบคิดค่าตอบแทน',20],['แอปคิดตอนส่ง (ประเภท)',16],['แอปคิดตอนส่ง (บาท)',10],['ช่วงเวลา',10],['ธง',30],['ส่งสาย (วัน)',8],['รหัสรายงาน',26]]);
+    RECS.filter(r=>ms.indexOf(r.dateKey.slice(0,7))>=0).sort((a,b)=>a.dateKey<b.dateKey?-1:a.dateKey>b.dateKey?1:(a.tech<b.tech?-1:1)).forEach(r=>{const z=zoneOf(r.hospital);
+      w1.addRow([r.dateKey,dnN(r.tech),reg(r.tech),r.hospital,(z&&z.p)||r.area||'',r.code,String(r.label||'').split(' — ')[0],r.desc||'',r.pt,r.status,r.by||'',r.reason||'',pay(r),r.allow||'',r.travel||'',r.period||'',(r.warn||[]).join(' · '),r.lateDays||'',r.id]);});hdr(w1);
+    const w2=wb.addWorksheet('คะแนนช่าง');cols(w2,[['ช่าง',32],['เขต',8]].concat(ms.map(m=>[m,10])).concat([['รวม',10]]));
+    TECHS.map(t=>{const per=ms.map(m=>RECS.filter(r=>r.tech===t.name&&r.status==='ผ่าน'&&r.dateKey.slice(0,7)===m).reduce((a,r)=>a+r.pt,0));return [dnT(t),isBkk(t)?'กทม.':'ตจว.'].concat(per).concat([per.reduce((a,b)=>a+b,0)]);}).sort((a,b)=>b[b.length-1]-a[a.length-1]).forEach(x=>w2.addRow(x));hdr(w2);
+    const w3=wb.addWorksheet('ค่าจุด สรุป');cols(w3,[['เดือน',10],['ช่าง',32],['จุด กทม. (75)',12],['จุด ปริมณฑล (100)',14],['วัน ตจว. ('+PD_AMT+')',12],['รวม (บาท)',12]]);
+    const w4=wb.addWorksheet('ค่าจุด รายละเอียด');cols(w4,[['เดือน',10],['ช่าง',32],['วันที่',11],['ประเภท',14],['สถานที่ / จังหวัด',36],['บาท',8],['คิดจากรายงาน',50]]);
+    try{ms.forEach(m=>{month=m;TECHS.filter(isBkk).forEach(t=>{const p=pointRows(t.name),pd=perDiemRows(t.name),a=p.filter(x=>x.rate===75).length,b=p.filter(x=>x.rate===100).length;
+      if(p.length||pd.length)w3.addRow([m,dnT(t),a,b,pd.length,a*75+b*100+pd.length*PD_AMT]);
+      p.forEach(x=>w4.addRow([m,dnT(t),x.dateKey,'ค่าจุด',x.hospital,x.rate,x.recs.map(r=>r.code+' '+String(r.label||'').split(' — ')[0]).join(' · ')]));
+      pd.forEach(x=>w4.addRow([m,dnT(t),x.dateKey,'เบี้ยเลี้ยง ตจว.',x.provs.join(', '),PD_AMT,x.recs.map(r=>r.hospital+' · '+r.code).join(' · ')]));});});}finally{month=keep;}
+    hdr(w3);hdr(w4);
+    return wb.xlsx.writeBuffer().then(buf=>{const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});window.__xlLast=blob;if(window.__xlNoDl)return;const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='รายงานช่าง ENDO '+(all?'ทั้งหมด':month)+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);});
+  }).catch(e=>{console.error(e);alert('ทำไฟล์ไม่สำเร็จ ลองใหม่อีกครั้ง');}).then(()=>{btn.disabled=false;btn.classList.remove('blink');btn.textContent='📊 Excel';});}
+document.getElementById('xlBtn').onclick=xlOpen;
+
+</script>
 </body></html>

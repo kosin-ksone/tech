@@ -1044,7 +1044,7 @@ function showOk(recs,h,all){
   $('#scrApp').classList.add('hidden');$('#scrOk').classList.remove('hidden');
   const totPh=recs.reduce((a,r)=>a+r.photoCount,0);
   const defer=recs.some(r=>r.status==='รอเอกสาร');const flags=recs.some(r=>r.flags&&r.flags.length);
-  $('#okSub').textContent=defer?('มีงานรอแนบใบ maintenance ภายใน '+DOC_GRACE_DAYS+' วัน'):'บันทึกในเครื่องแล้ว — โหลด PDF/Excel ส่งเมลได้ที่ รายงานของฉัน';
+  $('#okSub').textContent=defer?('มีงานรอแนบใบ maintenance ภายใน '+DOC_GRACE_DAYS+' วัน'):(NO_MAIL()?'บันทึกเข้าระบบแล้ว — ดูย้อนหลังได้ที่ รายงานของฉัน':'บันทึกในเครื่องแล้ว — โหลด PDF/Excel ส่งเมลได้ที่ รายงานของฉัน');
   const list=recs.map(r=>'• '+r.code+' '+r.label+(r.status==='รอเอกสาร'?' — รอเอกสาร':'')).join('<br>');
   $('#okSumm').innerHTML='<div class="r"><span>ช่าง</span><span>'+recs[0].tech+'</span></div><div class="r"><span>สถานที่</span><span>'+[...new Set(recs.map(r=>r.hospital))].join('<br>')+'</span></div><div class="tasks" style="padding:8px 0">'+list+'</div><div class="r"><span>รวม</span><span>'+recs.length+' งาน · '+totPh+' รูป</span></div>';
   const mine=all.filter(r=>(r.tech===currentTech.name)&&r.dateKey===todayKey());
@@ -1225,7 +1225,8 @@ function syncStatus(){ if(!SYNC_URL||!currentTech||Date.now()-syStAt<60000) retu
     if(ch){ saveReports(a); try{ if(!$('#scoreBody').closest('.hidden')) renderScore(); }catch(e){} } }).catch(function(){}); }
 /* ===== ✉️ ร่างอีเมลส่งรายงาน — เปิดแอปเมลของช่างเอง ส่งจากเมลช่าง (ระบบไม่ส่ง) ===== */
 const MAIL_TO_TECH='workreport.kosin@gmail.com,kosie_y@yahoo.com';
-function mailNowBtn(){
+const NO_MAIL=()=>todayKey()>='2026-12-01';   // 25 พ.ย. 69 KOSIE: ตั้งแต่ 1 ธ.ค. 69 ช่างไม่ต้องส่งรายงานทางเมล (ดูผ่าน KOPASS)
+function mailNowBtn(){ if(NO_MAIL()) return '';
   return '<button type="button" onclick="draftMail()" style="width:100%;margin:10px 0 0;padding:13px;border-radius:12px;border:0;background:var(--brand,var(--brand-dark));color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer">✉️ ร่างอีเมลส่งรายงาน (สัปดาห์ที่ดูอยู่)</button>'
    +'<div style="font-size:11.5px;color:var(--mut);text-align:center;margin-top:4px">เปิดแอปเมลของคุณพร้อมผู้รับ + หัวเรื่อง + ข้อความ · แนบ PDF แล้วกดส่งจากเมลของตัวเอง</div>'; }
 function draftMail(){
@@ -1277,7 +1278,7 @@ function renderMine(){ syncStatus(); syncPull(); bellPull();
   });
   h+='<div class="dlrow"><button class="btn" data-dl="week">⬇ PDF · สัปดาห์นี้</button><button class="btn" data-dl="month">⬇ PDF · ทั้งเดือน</button></div>'+
     '<div class="dlrow" style="margin-top:-4px"><button class="btn" data-xl="week">📊 Excel · สัปดาห์นี้</button><button class="btn" data-xl="month">📊 Excel · ทั้งเดือน</button></div>'+
-    bkRow()+'<div style="background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.55;margin:8px 0 4px"><b>ℹ️ รายงานเข้าระบบบริษัทแล้ว + มีสำเนาในเครื่องนี้</b> — เปลี่ยนเครื่อง/ล้างเครื่อง แอปดึงรายงานของคุณกลับมาให้เอง (รูปเก็บในระบบ 1 ปี)<br>• โหลด PDF/Excel แล้ว<b>ส่งเมลจากเมลของตัวเอง ทุกสัปดาห์</b><br>• รูปในแอปเก็บแค่ <b>15 วัน</b> — โหลดก่อนรูปหาย<br>• เก็บไฟล์ที่โหลดไว้ในเครื่อง/อีเมลของตัวเองด้วย<br>• <b>เปลี่ยนเครื่อง:</b> กด 💾 สำรองข้อมูล → เครื่องใหม่กด ♻️ กู้คืนข้อมูล</div>';
+    bkRow()+'<div style="background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.55;margin:8px 0 4px"><b>ℹ️ รายงานเข้าระบบบริษัทแล้ว + มีสำเนาในเครื่องนี้</b> — เปลี่ยนเครื่อง/ล้างเครื่อง แอปดึงรายงานของคุณกลับมาให้เอง (รูปเก็บในระบบ 1 ปี)<br>'+(NO_MAIL()?'• <b>ไม่ต้องส่งเมลแล้ว</b> — หัวหน้าดูรายงานในระบบ (ตั้งแต่ 1 ธ.ค. 69)':'• โหลด PDF/Excel แล้ว<b>ส่งเมลจากเมลของตัวเอง ทุกสัปดาห์</b>')+'<br>• รูปในแอปเก็บแค่ <b>15 วัน</b> — โหลดก่อนรูปหาย<br>• เก็บไฟล์ที่โหลดไว้ในเครื่อง/อีเมลของตัวเองด้วย<br>• <b>เปลี่ยนเครื่อง:</b> กด 💾 สำรองข้อมูล → เครื่องใหม่กด ♻️ กู้คืนข้อมูล</div>';
   h+='<div class="ver">'+verText()+'</div>';
   $('#mineBody').innerHTML=h;
   $$('#mineBody [data-wk]').forEach(b=>b.onclick=()=>{if(b.disabled)return;mineWeek=addDays(mineWeek,7*+b.dataset.wk);renderMine();});
@@ -1352,7 +1353,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.33 · 25 พ.ย. 69';
+const APP_VER='v2.34 · 25 พ.ย. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
