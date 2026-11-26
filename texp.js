@@ -4,7 +4,7 @@
    + ใบกรอกไมล์ (ฟลีทการ์ด/เติมเอง/ทางด่วน…) + รูปหน้าปัดไมล์ → ระบบ (ธงให้บัญชีดูคนเดียว)
    ดึง รพ. + ค่าจุด + เบี้ยเลี้ยง จากรายงานช่างให้เอง · ลงพิกัดบ้านครั้งแรก · ข้อมูลเก็บในเครื่อง (kosin_tech_exp_*) + ไฟล์สำรอง */
 (function(){
-var EXP_VER='v1.5 · 26 พ.ย. 69';
+var EXP_VER='v1.6 · 26 พ.ย. 69';
 function gOn(){ return !isBkk(); }   // ช่าง กทม. ขี่มอเตอร์ไซค์ → กรอกระยะเอง ไม่ใช้ Google (ระยะรถยนต์ยาวกว่าจริง) · พี่ฝน 16 พ.ย. 69
 var me=null;
 function T(){ return window.currentTech||(typeof currentTech!=='undefined'?currentTech:null); }
@@ -25,6 +25,8 @@ function RB(){ return RN('ค่าจุด กทม. (ช่าง กทม.
 var HL0='2026-12-01', HOS=LS0('kosin_endohos',null);
 function HNt(s){ return String(s||'').toLowerCase().replace(/โรงพยาบาล|รพ\.?|\s|\.|-|\(|\)/g,''); }
 function hosRate(h,d){ if(!HOS||!d||d<HL0) return null; var n=HNt(h),best=null,bf=''; HOS.forEach(function(r){ if(HNt(r[0])!==n) return; var f=r[2]||'',t=r[3]||''; if(f&&f>d) return; if(t&&t<d) return; if(best===null||f>=bf){ best=+r[1]||0; bf=f; } }); return best; }
+/* 26 พ.ย. 69: รพ. ใกล้กันวันเดียวกัน คิดแค่จุดแรก (กฎ นับเป็นจุดเดียว (วันเดียวกัน)) */
+function canonT(h,d){ var n=HNt(h), gs=String(RV('นับเป็นจุดเดียว (วันเดียวกัน)',d,'โรงพยาบาลศิริราช + โรงพยาบาลศิริราชปิยมหาราชการุณย์')).split(/\s*;\s*/); for(var i=0;i<gs.length;i++){ var g=gs[i].split(/\s*\+\s*/).map(function(x){return x.trim();}).filter(String); if(g.length>1&&g.some(function(x){return HNt(x)===n;})) return g[0]; } return h; }
 function loadRules(){ if(!window.SYNC_URL) return; fetch(SYNC_URL+'?op=endorules').then(function(r){return r.json();}).then(function(j){ if(!j||!j.ok||!j.rules) return; var ch=JSON.stringify(j.rules)!==JSON.stringify(RULES); if(j.hos&&JSON.stringify(j.hos)!==JSON.stringify(HOS)){ HOS=j.hos; ch=true; try{ localStorage.setItem('kosin_endohos',JSON.stringify(HOS)); }catch(e){} } RULES=j.rules; try{ localStorage.setItem('kosin_endorules',JSON.stringify(RULES)); }catch(e){} if(ch&&st&&document.getElementById('expOv')) render(); }).catch(function(){}); }
 function ALWS(){ var b=isBkk(), h=b?RN('เบี้ยเลี้ยงนอกเขต ครึ่งวัน (เช้า/บ่าย)',125):RN('เบี้ยเลี้ยง ช่าง ตจว. ครึ่งวัน',100), f=b?RN('เบี้ยเลี้ยงนอกเขต เต็มวัน',250):RN('เบี้ยเลี้ยง ช่าง ตจว. เต็มวัน',200);
   return [['n','ไม่มี',0],['h','ครึ่งวัน '+h,h],['f','เต็มวัน '+f,f]]; }   // กทม → คอลัมน์ J · ตจว → K   // กทม → คอลัมน์ J · ตจว → K
@@ -81,7 +83,7 @@ function autoDay(k,depth){
   var P=prof(), pl=reportPlaces(k), hol=isHoliday(k), d={auto:true,veh:P.veh,label:'',start:'',legs:[],alw:'n',hotel:'',ot:'',other:'',otherNote:''};
   if(!pl.length){ d.label=hol.off?'วันหยุด':''; return d; }
   d.start=prevEnd(k,depth)||P.home;
-  var from=d.start; pl.slice(0,MAXLEG-1).forEach(function(h){ var pt=isBkk()?reportPt(k,h):0; d.legs.push({to:h,km:kmGuess(from,h),pt:pt?String(pt):''}); from=h; });
+  var from=d.start, seen={}; pl.slice(0,MAXLEG-1).forEach(function(h){ var pt=isBkk()?reportPt(k,h):0, cg=canonT(h,k); if(pt&&seen[cg]) pt=0; if(pt) seen[cg]=1; d.legs.push({to:h,km:kmGuess(from,h),pt:pt?String(pt):''}); from=h; });
   var back=nearHome(from,P)||(isHome(d.start,P)?d.start:P.home); d.legs.push({to:back,km:kmGuess(from,back)});
   d.alw=reportAlw(k);
   return d;
