@@ -508,7 +508,11 @@ function isDup(hash,code){   // เตือนเฉพาะรูปที่
 
 /* ===== technicians (base + self-added) ===== */
 function newTechs(){try{return JSON.parse(localStorage.getItem('kosin_newtech')||'[]')}catch(e){return[]}}
-function allTechs(){return (window.TECHNICIANS||[]).concat(newTechs());}
+/* 26 พ.ย. 69 พี่ฝน: รายชื่อช่างจากชีต ENDO (แท็บ รายชื่อช่าง) · ENDO เพิ่มช่างใหม่/แก้ชื่อเล่น เขต ยานพาหนะเอง · จังหวัดฐานจากแท็บ จังหวัดฐานช่าง */
+function LSJ(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function allTechs(){const S=LSJ('kosin_endotechs',[]),M={};S.forEach(x=>{M[x.name]=x;});const base=(window.TECHNICIANS||[]).map(t=>{const x=M[t.name];if(!x)return t;const o=Object.assign({},t);if(x.nick)o.nick=x.nick;if(x.vehicle)o.vehicle=x.vehicle;if(x.region)o.region=x.region;else delete o.region;return o;});const kn={};base.forEach(t=>kn[t.name]=1);const add=S.filter(x=>!kn[x.name]).map(x=>{const o={name:x.name,nick:x.nick||'',vehicle:x.vehicle||''};if(x.region)o.region=x.region;return o;});return base.concat(add).concat(newTechs().filter(t=>!M[t.name]));}
+function mergeBase(){const B=LSJ('kosin_endobase',null);if(!B)return;const td=new Date().toLocaleDateString('sv-SE');window.TCJ_HOME=window.TCJ_HOME||{};Object.keys(B).forEach(n=>{let best=null,bf='';(B[n]||[]).forEach(e=>{const f=e.from||'';if(f&&f>td)return;if(best===null||f>=bf){best=e.p||[];bf=f;}});if(best&&best.length)window.TCJ_HOME[n]=best;});}
+mergeBase();
 
 /* ===== modal ===== */
 function showModal(opt){
@@ -546,7 +550,7 @@ function findTech(name){return allTechs().find(t=>t.name.trim()===String(name).t
 /* 26 พ.ย. 69 พี่ฝน: ช่างลาออก = ENDO ใส่วันลาออกในชีต (แท็บ รายชื่อช่าง) → หลังวันนั้นเข้าแอปไม่ได้ */
 function leaveMap(){try{return JSON.parse(localStorage.getItem('kosin_endoleave')||'{}')}catch(e){return{}}}
 function isLeft(t){const d=leaveMap()[t.name];return !!d&&d<new Date().toLocaleDateString('sv-SE');}
-(function(){const u=window.APP_CONFIG&&!window.APP_CONFIG.TRIAL&&window.APP_CONFIG.SYNC_URL;if(!u)return;fetch(u+'?op=endorules').then(r=>r.json()).then(j=>{if(!j||!j.ok)return;const v=JSON.stringify(j.leave||{});if(v===localStorage.getItem('kosin_endoleave'))return;try{localStorage.setItem('kosin_endoleave',v);}catch(e){}if(!currentTech)buildLogin();}).catch(()=>{});})();
+(function(){const u=window.APP_CONFIG&&!window.APP_CONFIG.TRIAL&&window.APP_CONFIG.SYNC_URL;if(!u)return;fetch(u+'?op=endorules').then(r=>r.json()).then(j=>{if(!j||!j.ok)return;const v=JSON.stringify(j.leave||{}),t=JSON.stringify(j.techs||[]),b=JSON.stringify(j.base||{});if(v===localStorage.getItem('kosin_endoleave')&&t===localStorage.getItem('kosin_endotechs')&&b===localStorage.getItem('kosin_endobase'))return;try{localStorage.setItem('kosin_endoleave',v);if(j.techs&&j.techs.length)localStorage.setItem('kosin_endotechs',t);if(j.base)localStorage.setItem('kosin_endobase',b);}catch(e){}mergeBase();if(!currentTech)buildLogin();}).catch(()=>{});})();
 $('#techGo').onclick=()=>{
   const v=$('#techPick').value;
   if(v==='__add__'){addTechFlow('');return;}
@@ -1358,7 +1362,7 @@ function renderScore(){
   $$('#scoreBody [data-m]').forEach(b=>b.onclick=()=>{if(b.disabled)return;scoreMonth=b.dataset.m;renderScore();});
   $$('#scoreBody [data-doc]').forEach(b=>b.onclick=()=>{docRecId=b.getAttribute('data-doc');activeCode=null;$('#photoInput').click();});
 }
-const APP_VER='v2.35 · 26 พ.ย. 69';
+const APP_VER='v2.36 · 26 พ.ย. 69';
 function verText(){return 'รายงานงานช่าง '+APP_VER+' · Developed by KOSIN';}
 function completeDoc(id,f){const all=getReports();const r=all.find(x=>x.id===id);if(r&&f)resizeImageBlob(f,1280,0.68).then(d=>syncPush({op:'doc',id:id,dateKey:r.dateKey,tech:r.tech,add:[d]})).catch(()=>{});if(r){r.status='รอตรวจ';r.docDeadline='';r.photoCount=(r.photoCount||0)+1;saveReports(all);}renderScore();if(SUBMIT_URL)fetch(SUBMIT_URL,{method:'POST',body:JSON.stringify({action:'adddoc',id:id})}).catch(()=>{});}
 
